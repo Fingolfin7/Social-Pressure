@@ -1,0 +1,4 @@
+Django~=5.2.0
+pywebpush
+python-dotenv
+Pillow

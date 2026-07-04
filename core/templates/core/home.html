@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Social Pressure{% endblock %}
+
+{% block content %}
+<h1>Hello, {{ user.username }}</h1>
+
+{% if projects %}
+    <ul>
+        {% for project in projects %}
+            <li>
+                <strong>{{ project.name }}</strong>
+                {% with activity=project.activities.first %}
+                    {% if activity %}
+                        - {{ activity.name }}
+                    {% else %}
+                        - No activity yet
+                    {% endif %}
+                {% endwith %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>You are not a member of any projects yet.</p>
+{% endif %}
+{% endblock %}
