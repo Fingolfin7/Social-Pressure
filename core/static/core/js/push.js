@@ -89,7 +89,7 @@
         } else {
             enableButton.disabled = false;
             testButton.disabled = true;
-            setStatus("Notifications are off for this device.");
+            setStatus(`Notifications are off for this device (permission: ${Notification.permission}).`);
         }
     }
 
@@ -100,10 +100,10 @@
         try {
             const permission = await Notification.requestPermission();
             if (permission !== "granted") {
+                enableButton.disabled = false;
                 setStatus(permission === "denied"
-                    ? "Notifications are blocked for this site."
-                    : "Notification permission was not granted.");
-                await refreshStatus();
+                    ? "Notifications are blocked for this site. Check the site permission and the browser app's notification setting in Android settings."
+                    : "The permission prompt was dismissed without granting. If no prompt appeared, notifications may be disabled for your browser app in Android settings.");
                 return;
             }
 
@@ -117,11 +117,11 @@
             }
 
             await postJson("/push/subscribe/", subscription.toJSON());
+            testButton.disabled = false;
             setStatus("Notifications are enabled on this device.");
         } catch (error) {
-            setStatus(error.message || "Could not enable notifications.");
-        } finally {
-            await refreshStatus();
+            enableButton.disabled = false;
+            setStatus(`Could not enable notifications — ${error.name || "Error"}: ${error.message || "unknown"}`);
         }
     });
 
@@ -135,7 +135,7 @@
         } catch (error) {
             setStatus(error.message || "Could not send a test notification.");
         } finally {
-            await refreshStatus();
+            testButton.disabled = false;
         }
     });
 
