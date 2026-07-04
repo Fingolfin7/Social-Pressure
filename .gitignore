@@ -8,3 +8,4 @@ media/
 staticfiles/
 _reference/
 codex_task*_result.md
+*.log
