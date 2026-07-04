@@ -1,8 +1,14 @@
 <!doctype html>
+{% load static %}
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#18324a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="{% url 'manifest' %}">
+    <link rel="apple-touch-icon" href="{% static 'core/images/icons/social-pressure-icon-192.png' %}">
     <title>{% block title %}Social Pressure{% endblock %}</title>
     <style>
         :root {
@@ -59,6 +65,22 @@
             font: inherit;
             cursor: pointer;
         }
+        button:disabled {
+            background: #789;
+            cursor: not-allowed;
+        }
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .button-row button {
+            margin-top: 0.5rem;
+        }
+        .status-text {
+            color: #516070;
+            margin: 0.5rem 0 0;
+        }
         .messages {
             padding: 0;
             list-style: none;
@@ -103,5 +125,13 @@
         {% endif %}
         {% block content %}{% endblock %}
     </main>
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+            });
+        }
+    </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

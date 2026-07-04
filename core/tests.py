@@ -1,10 +1,12 @@
 from datetime import datetime
+import json
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from .models import Activity, EventLog, MemberTarget, Membership, Project
+from .models import Activity, EventLog, MemberTarget, Membership, Project, PushSubscription
 from .utils import get_period_bounds
 
 
@@ -57,3 +59,77 @@ class CoreModelTests(TestCase):
         second = Project.objects.create(name="Second", created_by=user)
 
         self.assertNotEqual(first.invite_token, second.invite_token)
+
+
+class PushViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="pushuser",
+            email="push@example.com",
+            password="testpass123",
+        )
+        self.client.force_login(self.user)
+
+    def test_subscribe_creates_push_subscription(self):
+        response = self.client.post(
+            "/push/subscribe/",
+            data=json.dumps(
+                {
+                    "endpoint": "https://push.example/subscription",
+                    "keys": {
+                        "p256dh": "public-key",
+                        "auth": "auth-secret",
+                    },
+                }
+            ),
+            content_type="application/json",
+            HTTP_USER_AGENT="Django test client",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"ok": True})
+        subscription = PushSubscription.objects.get(user=self.user)
+        self.assertEqual(subscription.endpoint, "https://push.example/subscription")
+        self.assertEqual(subscription.p256dh, "public-key")
+        self.assertEqual(subscription.auth, "auth-secret")
+        self.assertEqual(subscription.user_agent, "Django test client")
+
+    @override_settings(
+        VAPID_PRIVATE_KEY="private-key",
+        VAPID_PUBLIC_KEY="public-key",
+        VAPID_ADMIN_EMAIL="admin@example.com",
+    )
+    @patch("core.views.send_push_to_user", return_value=1)
+    def test_push_test_returns_sent_count(self, send_push_to_user):
+        PushSubscription.objects.create(
+            user=self.user,
+            endpoint="https://push.example/subscription",
+            p256dh="public-key",
+            auth="auth-secret",
+        )
+
+        response = self.client.post(
+            "/push/test/",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"sent": 1})
+        send_push_to_user.assert_called_once()
+
+
+class PwaViewTests(TestCase):
+    def test_manifest_returns_manifest_json(self):
+        response = self.client.get("/manifest.json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/manifest+json")
+        self.assertEqual(response.json()["name"], "Social Pressure")
+
+    def test_service_worker_returns_allowed_header(self):
+        response = self.client.get("/service-worker.js")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Service-Worker-Allowed"], "/")
