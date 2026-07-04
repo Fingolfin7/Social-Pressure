@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}New project - Social Pressure{% endblock %}
+
+{% block topbar %}
+<header class="topbar topbar--interior">
+    <a class="icon-btn" href="{% url 'home' %}" aria-label="Back to home">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    <div class="topbar__context">New project</div>
+    <span aria-hidden="true"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="screen stack--loose">
+    <div class="stack">
+        <h1 class="screen-title">Who are you keeping on track?</h1>
+        <p class="screen-subtitle">Pick a starting point - you can tweak everything.</p>
+    </div>
+
+    <form class="form" method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="field">
+            <span class="field__label">Start from</span>
+            <div class="template-picker">
+                <label>
+                    <input class="template-picker__input" type="radio" name="template" value="gym" data-name="Gym Buddies" data-activity="Sessions" data-unit="session" data-cadence="weekly"{% if not errors and values.template == "gym" %} checked{% endif %}>
+                    <span class="template-picker__card">
+                        <span class="template-picker__emoji" aria-hidden="true">&#127947;&#65039;</span>
+                        <span class="template-picker__name">Gym buddy</span>
+                    </span>
+                </label>
+                <label>
+                    <input class="template-picker__input" type="radio" name="template" value="study" data-name="Study Sessions" data-activity="Sessions" data-unit="session" data-cadence="weekly"{% if not errors and values.template == "study" %} checked{% endif %}>
+                    <span class="template-picker__card">
+                        <span class="template-picker__emoji" aria-hidden="true">&#128218;</span>
+                        <span class="template-picker__name">Study partner</span>
+                    </span>
+                </label>
+                <label>
+                    <input class="template-picker__input" type="radio" name="template" value="custom" data-name="" data-activity="" data-unit="" data-cadence="weekly"{% if not errors and values.template == "custom" %} checked{% endif %}>
+                    <span class="template-picker__card">
+                        <span class="template-picker__emoji" aria-hidden="true">&#10024;</span>
+                        <span class="template-picker__name">Custom</span>
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="id_name">Call it</label>
+            <input id="id_name" type="text" name="name" maxlength="100" value="{{ values.name }}" data-project-name required>
+            {% if errors.name %}<p class="errorlist">{{ errors.name|safe }}</p>{% endif %}
+        </div>
+
+        <div class="field">
+            <span class="field__label">What you'll count</span>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="id_activity">Activity</label>
+                    <input id="id_activity" type="text" name="activity" maxlength="100" value="{{ values.activity }}" data-project-activity required>
+                    {% if errors.activity %}<p class="errorlist">{{ errors.activity|safe }}</p>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_unit">One is a...</label>
+                    <input id="id_unit" type="text" name="unit" maxlength="50" value="{{ values.unit }}" data-project-unit required>
+                    {% if errors.unit %}<p class="errorlist">{{ errors.unit|safe }}</p>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <span class="field__label">How often</span>
+            <div class="segmented">
+                <input class="segmented__input" id="cadence_daily" type="radio" name="cadence" value="daily"{% if values.cadence == "daily" %} checked{% endif %}>
+                <label class="segmented__label" for="cadence_daily">Daily</label>
+                <input class="segmented__input" id="cadence_weekly" type="radio" name="cadence" value="weekly"{% if values.cadence == "weekly" %} checked{% endif %}>
+                <label class="segmented__label" for="cadence_weekly">Weekly</label>
+                <input class="segmented__input" id="cadence_monthly" type="radio" name="cadence" value="monthly"{% if values.cadence == "monthly" %} checked{% endif %}>
+                <label class="segmented__label" for="cadence_monthly">Monthly</label>
+            </div>
+            {% if errors.cadence %}<p class="errorlist">{{ errors.cadence|safe }}</p>{% endif %}
+        </div>
+
+        <div class="field">
+            <span class="field__label">Keep going</span>
+            <div class="binary-choice">
+                <input class="segmented__input" id="duration_open" type="radio" name="duration" value="open"{% if values.duration != "until" %} checked{% endif %}>
+                <label class="binary-choice__label" for="duration_open">As long as we like</label>
+                <input class="segmented__input" id="duration_until" type="radio" name="duration" value="until"{% if values.duration == "until" %} checked{% endif %}>
+                <label class="binary-choice__label" for="duration_until">Until a date</label>
+            </div>
+        </div>
+
+        <div class="field{% if values.duration != 'until' %} is-hidden{% endif %}" data-date-reveal>
+            <label for="id_end_date">End date</label>
+            <input id="id_end_date" type="date" name="end_date" value="{{ values.end_date }}">
+            {% if errors.end_date %}<p class="errorlist">{{ errors.end_date|safe }}</p>{% endif %}
+        </div>
+
+        <div class="recap-card">
+            You'll be counting <b>{{ recap.unit }}</b>, one per {{ recap.activity }}, <b>each {{ recap.cadence }}</b>, for as long as you both keep it up. Set your own target once you're in.
+        </div>
+
+        <button class="btn btn--primary btn--full" type="submit">Create &amp; get the invite link &rarr;</button>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Social Pressure{% endblock %}
+
+{% block topbar %}
+<header class="topbar topbar--interior">
+    <a class="icon-btn" href="{% url 'home' %}" aria-label="Back to home">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    <div class="topbar__context"></div>
+    <span aria-hidden="true"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="screen stack--loose">
+    <div class="stack">
+        <h1 class="screen-title">{{ project.name }}</h1>
+        <p class="screen-subtitle">{{ activity.name }} &middot; {{ activity.cadence }}</p>
+    </div>
+
+    {% if missing_target %}
+        <section class="card">
+            <div class="stack">
+                <h2 class="section-title">How many for you?</h2>
+                <p class="screen-subtitle">Set your target.</p>
+                <a class="btn btn--primary btn--full" href="{% url 'project_target' project.pk %}">Set your target</a>
+            </div>
+        </section>
+    {% endif %}
+
+    <div class="stack">
+        {% for member in progress %}
+            <article class="mcard{% if member.is_current_user %} mcard--you{% endif %} member-color--{{ member.color }}">
+                <div class="mcard__head">
+                    <span class="avatar avatar--46 avatar--{{ member.color }}">{{ member.display_name|slice:":1" }}</span>
+                    <div class="mcard__identity">
+                        <h2 class="mcard__name">
+                            {{ member.display_name }}
+                            {% if member.is_current_user %}<span class="you-tag">YOU</span>{% endif %}
+                        </h2>
+                        {% if member.target %}
+                            <p class="mcard__goal">Aiming for {{ member.target_count }} a {{ cadence_noun }}</p>
+                        {% else %}
+                            <p class="mcard__goal">No target yet</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="fraction fraction--big">
+                            {% if member.target %}
+                                <b>{{ member.count }}</b>/{{ member.target_count }}
+                            {% else %}
+                                <b>{{ member.count }}</b>
+                            {% endif %}
+                        </div>
+                        <div class="fraction-caption">{{ unit_plural }}</div>
+                    </div>
+                </div>
+                {% if member.target %}
+                    <div class="gdot-row gdot-row--lg" aria-hidden="true">
+                        {% for dot in member.dots %}
+                            <span class="gdot gdot--lg{% if dot.filled %} gdot--filled{% endif %}"></span>
+                        {% endfor %}
+                        {% if member.overflow %}
+                            <span class="gdot-overflow">+{{ member.overflow }}</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
