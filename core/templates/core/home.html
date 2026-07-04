@@ -4,37 +4,63 @@
 {% block title %}Home - Social Pressure{% endblock %}
 
 {% block content %}
-<h1>Hello, {{ user.username }}</h1>
-
-{% if projects %}
-    <ul>
-        {% for project in projects %}
-            <li>
-                <strong>{{ project.name }}</strong>
-                {% with activity=project.activities.first %}
-                    {% if activity %}
-                        - {{ activity.name }}
-                    {% else %}
-                        - No activity yet
-                    {% endif %}
-                {% endwith %}
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>You are not a member of any projects yet.</p>
-{% endif %}
-
-<section
-    data-push-controls
-    data-vapid-public-key="{{ vapid_public_key }}"
->
-    <h2>Notifications</h2>
-    <div class="button-row">
-        <button type="button" data-push-enable>Enable notifications</button>
-        <button type="button" data-push-test disabled>Send test notification</button>
+<section class="screen stack--loose">
+    <div class="stack">
+        {% firstof user.first_name user.username as display_name %}
+        <h1 class="screen-title screen-title--home">Hello, <span class="screen-title__accent">{{ display_name }}</span>.</h1>
+        <p class="screen-subtitle">
+            {% if projects %}
+                Your projects are waiting for the next check-in.
+            {% else %}
+                All caught up. Nice.
+            {% endif %}
+        </p>
     </div>
-    <p class="status-text" data-push-status>Checking notification status...</p>
+
+    {% if projects %}
+        <ul class="home-list">
+            {% for project in projects %}
+                <li class="project-card">
+                    <div class="project-card__head">
+                        <div>
+                            <h2 class="project-card__title">{{ project.name }}</h2>
+                            <p class="project-card__meta">
+                                {% with activity=project.activities.first %}
+                                    {% if activity %}
+                                        {{ activity.name }}
+                                    {% else %}
+                                        No activity yet
+                                    {% endif %}
+                                {% endwith %}
+                            </p>
+                        </div>
+                        <span class="pill pill--period">Active</span>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <section class="empty-state">
+            <h2 class="empty-state__title">Nobody's watching yet.</h2>
+            <p class="empty-state__copy">Start a project and invite someone who won't let you slack.</p>
+        </section>
+    {% endif %}
+
+    <section
+        class="card push-card"
+        data-push-controls
+        data-vapid-public-key="{{ vapid_public_key }}"
+    >
+        <div class="stack">
+            <h2 class="section-title">Notifications</h2>
+            <p class="screen-subtitle">Let partners know when you show up.</p>
+        </div>
+        <div class="button-row">
+            <button class="btn btn--primary" type="button" data-push-enable>Enable notifications</button>
+            <button class="btn btn--secondary" type="button" data-push-test disabled>Send test notification</button>
+        </div>
+        <p class="status-text" data-push-status>Checking notification status...</p>
+    </section>
 </section>
 {% endblock %}
 

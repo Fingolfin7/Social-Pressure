@@ -3,16 +3,28 @@
 {% block title %}Sign up - Social Pressure{% endblock %}
 
 {% block content %}
-<h1>Sign up</h1>
-<form method="post">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for field in form %}
-        {{ field.label_tag }}
-        {{ field }}
-        {{ field.errors }}
-    {% endfor %}
-    <button type="submit">Create account</button>
-</form>
-<p>Already have an account? <a href="{% url 'login' %}">Log in</a>.</p>
+<section class="auth-screen">
+    <div class="stack">
+        <h1 class="screen-title">Start pulling your weight.</h1>
+        <p class="screen-subtitle">Invite someone who will notice when you show up.</p>
+    </div>
+
+    <form class="auth-form" method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <div class="field">
+                <label class="field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {{ field.errors }}
+                {% if field.help_text %}
+                    <p class="field-help">{{ field.help_text }}</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <button class="btn btn--primary btn--full" type="submit">Create account</button>
+    </form>
+
+    <p class="auth-meta">Already have people watching? <a href="{% url 'login' %}">Log in</a>.</p>
+</section>
 {% endblock %}
