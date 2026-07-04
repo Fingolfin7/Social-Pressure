@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Social Pressure — Direction 2: Roster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f7f1e7;      /* warm paper */
+  --cream-2:#fdfaf4;
+  --card:#ffffff;
+  --clay:#d9603b;       /* terracotta warmth — the "you" */
+  --clay-soft:#f3d9cd;
+  --sage:#5c7a56;       /* partner green — calm, present */
+  --sage-soft:#d9e4d4;
+  --ink:#38332c;        /* soft brown-black */
+  --ink-2:#8a8072;      /* muted */
+  --line:#eae1d2;
+  --gold:#e0a838;       /* streak warmth */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#e7ddcd;
+  font-family:"Inter",system-ui,sans-serif;
+  color:var(--ink);-webkit-font-smoothing:antialiased;
+  padding:32px 20px 64px;
+}
+.deck-title{max-width:1400px;margin:0 auto 28px}
+.deck-title b{font-family:"Fraunces",serif;font-size:26px;font-weight:600;color:var(--ink)}
+.deck-title .sub{font-family:"Fraunces",serif;font-style:italic;color:var(--clay);font-size:17px;margin-left:10px}
+.deck-title p{font-size:13px;color:#7a7062;margin-top:8px;max-width:640px;line-height:1.5}
+.row{display:flex;gap:26px;overflow-x:auto;padding-bottom:20px;max-width:1400px;margin:0 auto;align-items:flex-start}
+.screen{flex:0 0 auto;width:390px}
+.screen h2{font-family:"Fraunces",serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline}
+.screen h2 em{font-style:italic;font-weight:400;color:var(--ink-2);font-size:13px}
+.phone{
+  width:390px;height:844px;background:var(--cream);border-radius:38px;overflow:hidden;position:relative;
+  box-shadow:0 24px 50px rgba(90,70,50,.28);border:1px solid #e4d7c2;display:flex;flex-direction:column;
+}
+.status{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;font-weight:600;color:var(--ink);flex:0 0 auto}
+.status .dots{letter-spacing:2px;opacity:.75}
+.topbar{padding:14px 22px 12px;display:flex;justify-content:space-between;align-items:center;flex:0 0 auto}
+.wordmark{font-family:"Fraunces",serif;font-size:19px;font-weight:600}
+.wordmark .dot{color:var(--clay)}
+.topav{width:34px;height:34px;border-radius:50%;background:var(--clay);color:#fff;display:grid;place-items:center;font-weight:600;font-size:14px}
+.iconbtn{width:34px;height:34px;border-radius:50%;background:var(--cream-2);border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-2)}
+.iconbtn svg{width:17px;height:17px}
+.scroll{flex:1 1 auto;overflow:hidden;position:relative}
+.pad{padding:6px 20px 26px}
+
+/* avatars */
+.av{border-radius:50%;display:grid;place-items:center;font-weight:600;color:#fff;flex:0 0 auto}
+.av.clay{background:var(--clay)}
+.av.sage{background:var(--sage)}
+.av.plum{background:#7b5ea7}
+.av.blue{background:#4b7ca8}
+
+/* ===== HOME ===== */
+.greet{font-family:"Fraunces",serif;font-size:27px;font-weight:600;line-height:1.15;margin:8px 2px 3px}
+.greet .name{color:var(--clay)}
+.greet-sub{font-size:13.5px;color:var(--ink-2);margin:0 2px 20px}
+.pcard{background:var(--card);border-radius:22px;padding:18px;margin-bottom:14px;border:1px solid var(--line);box-shadow:0 3px 10px rgba(90,70,50,.05);text-decoration:none;color:inherit;display:block}
+.pcard .ph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.pcard .pname{font-family:"Fraunces",serif;font-size:19px;font-weight:600}
+.pcard .pmeta{font-size:12px;color:var(--ink-2);margin-top:2px}
+.pill{font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px}
+.pill.warm{background:var(--clay-soft);color:#a8451f}
+.pill.good{background:var(--sage-soft);color:#3f5a3a}
+.pill.gold{background:#f6e6c4;color:#9a7415}
+/* roster dots for home */
+.roster{display:flex;flex-direction:column;gap:11px}
+.person{display:flex;align-items:center;gap:11px}
+.person .av{width:34px;height:34px;font-size:13px}
+.person .pinfo{flex:1;min-width:0}
+.person .pn{font-size:13px;font-weight:600;display:flex;justify-content:space-between;margin-bottom:5px}
+.person .pn .frac{font-weight:600;color:var(--ink-2)}
+.person .pn .frac b{color:var(--ink)}
+/* progress dots */
+.dots-track{display:flex;gap:5px;align-items:center}
+.gdot{width:16px;height:16px;border-radius:50%;flex:0 0 auto}
+.gdot.filled-clay{background:var(--clay)}
+.gdot.filled-sage{background:var(--sage)}
+.gdot.empty{background:transparent;border:2px solid var(--line)}
+.gdot.empty.warn{border-color:var(--clay);border-style:dashed}
+.addbig{width:100%;background:var(--ink);color:var(--cream);border:0;border-radius:20px;padding:16px;font-family:"Inter";font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;margin-top:6px}
+.addbig svg{width:18px;height:18px}
+
+/* ===== PROJECT ===== */
+.p-hero{padding:4px 22px 16px}
+.p-hero h1{font-family:"Fraunces",serif;font-size:26px;font-weight:600}
+.p-hero .desc{font-size:13px;color:var(--ink-2);margin-top:4px}
+.period-chip{display:inline-flex;align-items:center;gap:7px;margin-top:12px;background:var(--cream-2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12px;color:var(--ink-2)}
+.period-chip b{color:var(--ink)}
+/* member card — centerpiece */
+.mcard{background:var(--card);border-radius:24px;padding:18px 18px 16px;margin:0 20px 14px;border:1px solid var(--line);box-shadow:0 4px 14px rgba(90,70,50,.06)}
+.mcard.you{border:1.5px solid var(--clay-soft);background:linear-gradient(180deg,#fdf4ef,#ffffff 60%)}
+.mcard .top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.mcard .top .av{width:46px;height:46px;font-size:18px}
+.mcard .who{flex:1}
+.mcard .who .nm{font-family:"Fraunces",serif;font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px}
+.mcard .who .youtag{font-family:"Inter";font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--clay);background:var(--clay-soft);padding:2px 7px;border-radius:8px}
+.mcard .who .goal{font-size:12px;color:var(--ink-2);margin-top:2px}
+.mcard .big{text-align:right}
+.mcard .big .n{font-family:"Fraunces",serif;font-size:32px;font-weight:600;line-height:1}
+.mcard .big .n .slash{color:var(--ink-2);font-weight:400}
+.mcard .big .n.clay{color:var(--clay)}
+.mcard .big .n.sage{color:var(--sage)}
+.mcard .big .cap{font-size:10.5px;color:var(--ink-2);letter-spacing:.02em}
+/* big dot row for goal */
+.goaldots{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+.goaldots .gdot{width:26px;height:26px}
+.goaldots .gdot.filled-clay{box-shadow:0 2px 6px rgba(217,96,59,.35)}
+.goaldots .gdot.filled-sage{box-shadow:0 2px 6px rgba(92,122,86,.3)}
+.mfoot{display:flex;justify-content:space-between;align-items:center;font-size:12.5px}
+.streak{display:flex;align-items:center;gap:6px;font-weight:600;color:#9a7415;background:#f9edd4;padding:5px 11px;border-radius:16px}
+.streak.cold{color:var(--ink-2);background:var(--cream-2)}
+.togo{color:var(--clay);font-weight:600}
+.togo.done{color:var(--sage)}
+
+/* feed */
+.feed-h{font-family:"Fraunces",serif;font-size:17px;font-weight:600;padding:8px 22px 2px}
+.feed-h .sub{font-family:"Inter";font-size:12px;font-weight:400;color:var(--ink-2)}
+.evt{display:flex;gap:12px;padding:14px 22px}
+.evt .av{width:38px;height:38px;font-size:14px}
+.evt .ec{flex:1}
+.evt .el1{font-size:14px}
+.evt .el1 b{font-weight:600}
+.evt .el1 .t{color:var(--ink-2);font-weight:400}
+.evt .when{font-size:11px;color:var(--ink-2);margin-top:1px}
+.evt .note{font-size:13px;color:var(--ink);background:var(--cream-2);border-radius:0 14px 14px 14px;padding:8px 12px;margin-top:8px;display:inline-block;border:1px solid var(--line)}
+.rxrow{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.rx{background:var(--cream-2);border:1px solid var(--line);border-radius:16px;padding:4px 9px;font-size:12px;display:flex;gap:5px;align-items:center}
+.rx.mine{background:var(--clay-soft);border-color:transparent}
+.rx b{font-size:11px;color:var(--ink-2);font-weight:600}
+.rx.add{border-style:dashed;color:var(--ink-2)}
+.nudge-evt{padding:10px 22px;display:flex;gap:12px;align-items:center}
+.nudge-evt .bell{width:38px;height:38px;border-radius:50%;background:#f9edd4;display:grid;place-items:center;color:var(--gold);flex:0 0 auto}
+.nudge-evt .bell svg{width:16px;height:16px}
+.nudge-evt .txt{font-size:13px;color:var(--ink-2)}
+.nudge-evt .txt b{color:var(--ink);font-weight:600}
+/* bottom bar */
+.pbar-actions{flex:0 0 auto;padding:12px 18px 16px;display:flex;gap:12px;background:linear-gradient(180deg,rgba(247,241,231,0),var(--cream) 40%)}
+.nudge-btn{width:56px;flex:0 0 auto;border-radius:18px;border:1.5px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;color:var(--gold)}
+.nudge-btn svg{width:20px;height:20px}
+.log-btn{flex:1;border:0;border-radius:18px;background:var(--clay);color:#fff;font-family:"Inter";font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;box-shadow:0 6px 16px rgba(217,96,59,.35)}
+.log-btn svg{width:19px;height:19px}
+
+/* ===== LOG ===== */
+.log-wrap{flex:1;display:flex;flex-direction:column;padding:18px 24px 24px;text-align:center}
+.log-head{margin-bottom:8px}
+.log-head .ava{width:56px;height:56px;margin:8px auto 12px}
+.log-head h1{font-family:"Fraunces",serif;font-size:23px;font-weight:600}
+.log-head p{font-size:13px;color:var(--ink-2);margin-top:6px;line-height:1.45}
+.log-head p b{color:var(--clay)}
+.log-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px}
+.big-tap{
+  width:216px;height:216px;border-radius:50%;border:0;cursor:pointer;
+  background:radial-gradient(circle at 50% 38%,#e8794f,var(--clay));color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 16px 40px rgba(217,96,59,.4),0 0 0 10px #fbe4d8;
+  font-family:"Inter";
+}
+.big-tap .plus{font-size:64px;font-weight:300;line-height:1}
+.big-tap .l{font-family:"Fraunces",serif;font-size:16px;font-weight:600}
+.tap-sub{font-size:12.5px;color:var(--ink-2)}
+.note-in{width:100%;border:1.5px solid var(--line);background:var(--card);border-radius:16px;padding:13px 15px;font-family:"Inter";font-size:13.5px;color:var(--ink);text-align:left}
+.note-in::placeholder{color:#b6ab99}
+/* done */
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 30px;text-align:center}
+.done .burst{width:130px;height:130px;border-radius:50%;background:var(--sage-soft);display:grid;place-items:center;position:relative}
+.done .burst svg{width:58px;height:58px;stroke:var(--sage)}
+.done h1{font-family:"Fraunces",serif;font-size:24px;font-weight:600}
+.done p{font-size:14px;color:var(--ink-2);line-height:1.5}
+.done p b{color:var(--ink)}
+.pushtag{display:flex;align-items:center;gap:8px;background:var(--cream-2);border:1px solid var(--line);border-radius:20px;padding:8px 15px;font-size:12.5px;color:var(--ink-2);margin-top:4px}
+.pushtag .av{width:24px;height:24px;font-size:11px}
+
+/* ===== CREATE ===== */
+.c-head{padding:6px 24px 6px}
+.c-head h1{font-family:"Fraunces",serif;font-size:25px;font-weight:600;line-height:1.15}
+.c-head p{font-size:13px;color:var(--ink-2);margin-top:6px}
+.c-sec{padding:16px 22px 0}
+.c-lbl{font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:10px}
+.tmpls{display:flex;gap:10px}
+.tmpl{flex:1;border:1.5px solid var(--line);background:var(--card);border-radius:18px;padding:14px 8px;text-align:center;cursor:pointer}
+.tmpl.on{border-color:var(--clay);background:#fdf4ef}
+.tmpl .em{font-size:26px}
+.tmpl .tn{font-size:12px;font-weight:600;margin-top:6px}
+.txt-in{width:100%;border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:14px 15px;font-family:"Inter";font-size:15px;color:var(--ink)}
+.txt-in:focus{outline:none;border-color:var(--clay)}
+.two{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+.field-lbl{font-size:11px;color:var(--ink-2);margin-bottom:5px;font-weight:500}
+.cadence{display:flex;gap:8px}
+.cad{flex:1;border:1.5px solid var(--line);border-radius:14px;padding:11px 4px;text-align:center;font-size:12.5px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.cad.on{background:var(--clay);color:#fff;border-color:var(--clay)}
+.dur2{display:flex;gap:10px}
+.dopt{flex:1;border:1.5px solid var(--line);border-radius:14px;padding:13px;font-size:13px;text-align:center;cursor:pointer;color:var(--ink-2);font-weight:500}
+.dopt.on{border-color:var(--clay);color:var(--ink);background:#fdf4ef}
+.recap{margin:20px 22px 0;background:var(--sage-soft);border-radius:16px;padding:14px 16px;font-size:13px;color:#3f5a3a;line-height:1.5}
+.recap b{color:#2f4a2c}
+.create-cta{margin:18px 22px 24px}
+.create-cta .addbig{border-radius:18px;background:var(--clay);box-shadow:0 6px 16px rgba(217,96,59,.3)}
+
+/* ===== INVITE ===== */
+.inv-hero{padding:22px 24px 6px;text-align:center}
+.inv-hero .from{font-size:13px;color:var(--ink-2);margin-bottom:16px}
+.inv-hero .from b{color:var(--ink);font-weight:600}
+.pair{display:flex;justify-content:center;align-items:center;margin-bottom:18px}
+.pair .av{width:64px;height:64px;font-size:24px;border:3px solid var(--cream)}
+.pair .av:nth-child(2){margin-left:-16px}
+.pair .heart{margin:0 -8px;z-index:3;width:30px;height:30px;background:var(--clay);border-radius:50%;display:grid;place-items:center;color:#fff;border:3px solid var(--cream)}
+.pair .heart svg{width:15px;height:15px}
+.inv-hero h1{font-family:"Fraunces",serif;font-size:24px;font-weight:600;line-height:1.25}
+.inv-hero h1 em{font-style:italic;color:var(--clay)}
+.inv-detail{margin:20px 22px 0;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.inv-detail .ir{display:flex;justify-content:space-between;padding:13px 16px;font-size:13.5px;border-bottom:1px solid var(--line)}
+.inv-detail .ir:last-child{border-bottom:0}
+.inv-detail .ir .k{color:var(--ink-2)}
+.inv-detail .ir .v{font-weight:600}
+.target-set{padding:18px 22px 0}
+.target-set .tl{font-family:"Fraunces",serif;font-size:16px;font-weight:600;text-align:center;margin-bottom:4px}
+.target-set .th{font-size:12px;color:var(--ink-2);text-align:center;margin-bottom:16px}
+.stepper2{display:flex;align-items:center;justify-content:center;gap:20px}
+.stepper2 button{width:52px;height:52px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);font-size:24px;color:var(--clay);cursor:pointer;font-family:"Inter"}
+.stepper2 .val{text-align:center}
+.stepper2 .val b{font-family:"Fraunces",serif;font-size:44px;font-weight:600;color:var(--clay);line-height:1;display:block}
+.stepper2 .val span{font-size:12px;color:var(--ink-2)}
+.inv-cta{padding:22px 22px 0}
+.inv-cta .addbig{border-radius:18px;background:var(--clay);box-shadow:0 6px 16px rgba(217,96,59,.3)}
+.inv-foot{text-align:center;font-size:11.5px;color:var(--ink-2);margin:12px 24px 0}
+
+.scroll::-webkit-scrollbar{width:0}
+</style>
+</head>
+<body>
+<div class="deck-title">
+  <b>Social Pressure</b><span class="sub">Direction 2 — Roster</span>
+  <p>Warm, human, and rounded. Partners are people first: real avatars, goal-dots that fill like beads on a string, and a feed that reads like friends cheering each other on. The gym buddy who texts you, not the spreadsheet that shames you.</p>
+</div>
+
+<div class="row">
+
+  <!-- ===== 1 HOME ===== -->
+  <div class="screen">
+    <h2>1 — Home <em>your projects</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="wordmark">Social Pressure<span class="dot">.</span></div><div class="topav">H</div></div>
+      <div class="scroll"><div class="pad">
+        <div class="greet">Morning, <span class="name">Henry</span>.</div>
+        <div class="greet-sub">Three people are counting on you this week.</div>
+
+        <a class="pcard">
+          <div class="ph"><div><div class="pname">Gym Buddies</div><div class="pmeta">Sessions · weekly · with Daniel</div></div><span class="pill warm">You're 1 behind</span></div>
+          <div class="roster">
+            <div class="person"><div class="av clay">H</div><div class="pinfo">
+              <div class="pn"><span>You</span><span class="frac"><b>2</b>/3</span></div>
+              <div class="dots-track"><span class="gdot filled-clay"></span><span class="gdot filled-clay"></span><span class="gdot empty warn"></span></div>
+            </div></div>
+            <div class="person"><div class="av sage">D</div><div class="pinfo">
+              <div class="pn"><span>Daniel <span style="color:var(--gold);font-weight:600">🔥4</span></span><span class="frac"><b>2</b>/2</span></div>
+              <div class="dots-track"><span class="gdot filled-sage"></span><span class="gdot filled-sage"></span></div>
+            </div></div>
+          </div>
+        </a>
+
+        <a class="pcard">
+          <div class="ph"><div><div class="pname">Czech, daily</div><div class="pmeta">Lessons · daily · with Lena</div></div><span class="pill gold">🔥 Day 12</span></div>
+          <div class="roster">
+            <div class="person"><div class="av clay">H</div><div class="pinfo">
+              <div class="pn"><span>You</span><span class="frac"><b>1</b>/1</span></div>
+              <div class="dots-track"><span class="gdot filled-clay"></span></div>
+            </div></div>
+            <div class="person"><div class="av plum">L</div><div class="pinfo">
+              <div class="pn"><span>Lena</span><span class="frac"><b>1</b>/1</span></div>
+              <div class="dots-track"><span class="gdot filled-sage"></span></div>
+            </div></div>
+          </div>
+        </a>
+
+        <a class="pcard">
+          <div class="ph"><div><div class="pname">Problem Sets</div><div class="pmeta">Sets · weekly · with Sam, Priya</div></div><span class="pill warm">You're behind</span></div>
+          <div class="roster">
+            <div class="person"><div class="av clay">H</div><div class="pinfo">
+              <div class="pn"><span>You</span><span class="frac"><b>2</b>/5</span></div>
+              <div class="dots-track"><span class="gdot filled-clay"></span><span class="gdot filled-clay"></span><span class="gdot empty warn"></span><span class="gdot empty"></span><span class="gdot empty"></span></div>
+            </div></div>
+            <div class="person"><div class="av blue">S</div><div class="pinfo">
+              <div class="pn"><span>Sam</span><span class="frac"><b>4</b>/5</span></div>
+              <div class="dots-track"><span class="gdot filled-sage"></span><span class="gdot filled-sage"></span><span class="gdot filled-sage"></span><span class="gdot filled-sage"></span><span class="gdot empty"></span></div>
+            </div></div>
+          </div>
+        </a>
+
+        <button class="addbig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Start a project</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ===== 2 PROJECT ===== -->
+  <div class="screen">
+    <h2>2 — Project <em>the heart of it</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar">
+        <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
+        <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></div>
+      </div>
+      <div class="p-hero">
+        <h1>Gym Buddies</h1>
+        <div class="desc">One session at a time, every week.</div>
+        <div class="period-chip">📅 This week · <b>Jun 30 – Jul 6</b> · 2 days left</div>
+      </div>
+      <div class="scroll">
+        <!-- You -->
+        <div class="mcard you">
+          <div class="top">
+            <div class="av clay" style="width:46px;height:46px;font-size:18px">H</div>
+            <div class="who"><div class="nm">Henry <span class="youtag">YOU</span></div><div class="goal">Aiming for 3 a week</div></div>
+            <div class="big"><div class="n clay">2<span class="slash">/3</span></div><div class="cap">sessions</div></div>
+          </div>
+          <div class="goaldots"><span class="gdot filled-clay"></span><span class="gdot filled-clay"></span><span class="gdot empty warn"></span></div>
+          <div class="mfoot"><span class="streak">🔥 2 weeks strong</span><span class="togo">1 more to hit your week →</span></div>
+        </div>
+        <!-- Daniel -->
+        <div class="mcard">
+          <div class="top">
+            <div class="av sage" style="width:46px;height:46px;font-size:18px">D</div>
+            <div class="who"><div class="nm">Daniel</div><div class="goal">Aiming for 2 a week</div></div>
+            <div class="big"><div class="n sage">2<span class="slash">/2</span></div><div class="cap">sessions</div></div>
+          </div>
+          <div class="goaldots"><span class="gdot filled-sage"></span><span class="gdot filled-sage"></span></div>
+          <div class="mfoot"><span class="streak">🔥 4 weeks strong</span><span class="togo done">Done for the week ✓</span></div>
+        </div>
+
+        <div class="feed-h">The week so far <span class="sub">· 7 check-ins</span></div>
+
+        <div class="evt">
+          <div class="av sage">D</div>
+          <div class="ec">
+            <div class="el1"><b>Daniel</b> <span class="t">went to the gym</span></div>
+            <div class="when">Tuesday, 6:20pm</div>
+            <div class="note">leg day — squat PR 🎉</div>
+            <div class="rxrow"><span class="rx mine">🔥 <b>2</b></span><span class="rx">💪 <b>1</b></span><span class="rx add">+</span></div>
+          </div>
+        </div>
+        <div class="nudge-evt">
+          <div class="bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+          <div class="txt"><b>Daniel</b> nudged you — “your turn 👀”</div>
+        </div>
+        <div class="evt">
+          <div class="av clay">H</div>
+          <div class="ec">
+            <div class="el1"><b>You</b> <span class="t">went to the gym</span></div>
+            <div class="when">Monday, 7:05am</div>
+            <div class="rxrow"><span class="rx">👏 <b>1</b></span><span class="rx add">+</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pbar-actions">
+        <button class="nudge-btn" title="Nudge Daniel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
+        <button class="log-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>I went to the gym</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3 LOG ===== -->
+  <div class="screen">
+    <h2>3 — Log <em>one warm tap</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></div><div class="wordmark" style="font-size:14px;color:var(--ink-2)">Gym Buddies</div><div style="width:34px"></div></div>
+      <div class="log-wrap">
+        <div class="log-head">
+          <div class="av clay ava" style="font-size:22px">H</div>
+          <h1>Did you make it?</h1>
+          <p>Tap once and Daniel finds out right away. You'll be at <b>3 of 3</b> — your whole week, done.</p>
+        </div>
+        <div class="log-center">
+          <button class="big-tap"><span class="plus">+</span><span class="l">Yes, I went</span></button>
+          <div class="tap-sub">One tap logs it. That's the whole thing.</div>
+          <input class="note-in" placeholder="Say something? (optional) — “finally did legs”">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3b DONE ===== -->
+  <div class="screen">
+    <h2>3b — Logged <em>done</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="wordmark" style="font-size:14px;color:var(--ink-2)">Gym Buddies</div><div style="width:34px"></div></div>
+      <div class="done">
+        <div class="burst"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h1>Nice. That's logged.</h1>
+        <p><b>3 of 3</b> this week — you hit it. Your streak just ticked up to <b>3 weeks</b>.</p>
+        <div class="pushtag"><span class="av sage">D</span>Daniel just got the notification</div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button style="border:1.5px solid var(--line);background:var(--card);color:var(--ink-2);border-radius:16px;padding:11px 18px;font-family:Inter;font-size:13px;font-weight:600;cursor:pointer">Undo</button>
+          <button style="border:0;background:var(--clay);color:#fff;border-radius:16px;padding:11px 22px;font-family:Inter;font-size:13px;font-weight:600;cursor:pointer">See the project</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 4 CREATE ===== -->
+  <div class="screen">
+    <h2>4 — Create <em>new project</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div><div class="wordmark" style="font-size:14px;color:var(--ink-2)">New project</div><div style="width:34px"></div></div>
+      <div class="scroll">
+        <div class="c-head"><h1>Who are you keeping<br>on track?</h1><p>Pick a starting point — you can tweak everything.</p></div>
+        <div class="c-sec">
+          <div class="c-lbl">Start from</div>
+          <div class="tmpls">
+            <div class="tmpl on"><div class="em">🏋️</div><div class="tn">Gym buddy</div></div>
+            <div class="tmpl"><div class="em">📚</div><div class="tn">Study partner</div></div>
+            <div class="tmpl"><div class="em">✨</div><div class="tn">Custom</div></div>
+          </div>
+        </div>
+        <div class="c-sec"><div class="c-lbl">Call it</div><input class="txt-in" value="Gym Buddies"></div>
+        <div class="c-sec">
+          <div class="c-lbl">What you'll count</div>
+          <div class="two">
+            <div><div class="field-lbl">Activity</div><input class="txt-in" value="Sessions"></div>
+            <div><div class="field-lbl">One is a…</div><input class="txt-in" value="session"></div>
+          </div>
+          <div class="field-lbl" style="margin-top:12px">How often</div>
+          <div class="cadence"><div class="cad">Daily</div><div class="cad on">Weekly</div><div class="cad">Monthly</div></div>
+        </div>
+        <div class="c-sec">
+          <div class="c-lbl">Keep going</div>
+          <div class="dur2"><div class="dopt on">As long as we like</div><div class="dopt">Until a date</div></div>
+        </div>
+        <div class="recap">You'll be counting <b>sessions</b>, one per gym trip, <b>each week</b>, for as long as you both keep it up. Set your own target once you're in.</div>
+        <div class="create-cta"><button class="addbig">Create &amp; get the invite link →</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 5 INVITE ===== -->
+  <div class="screen">
+    <h2>5 — Invite <em>join a project</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="wordmark">Social Pressure<span class="dot">.</span></div><div style="width:34px"></div></div>
+      <div class="scroll">
+        <div class="inv-hero">
+          <div class="from"><b>Daniel</b> wants you in on this</div>
+          <div class="pair">
+            <div class="av sage">D</div>
+            <div class="heart"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.5-8.5C.5 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5.5 3.5 3.5 7C19 16.65 12 21 12 21z"/></svg></div>
+            <div class="av clay" style="border-style:dashed">?</div>
+          </div>
+          <h1>Go to the gym <em>with Daniel</em>, even when you're not together.</h1>
+        </div>
+        <div class="inv-detail">
+          <div class="ir"><span class="k">Project</span><span class="v">Gym Buddies</span></div>
+          <div class="ir"><span class="k">You'll count</span><span class="v">Sessions, weekly</span></div>
+          <div class="ir"><span class="k">Daniel's aiming for</span><span class="v">2 a week</span></div>
+          <div class="ir"><span class="k">Runs</span><span class="v">As long as you like</span></div>
+        </div>
+        <div class="target-set">
+          <div class="tl">How many for you?</div>
+          <div class="th">Your target is yours — it doesn't have to match Daniel's.</div>
+          <div class="stepper2">
+            <button>−</button>
+            <div class="val"><b>3</b><span>sessions / week</span></div>
+            <button>+</button>
+          </div>
+        </div>
+        <div class="inv-cta"><button class="addbig">Join Gym Buddies</button></div>
+        <div class="inv-foot">You can change your target later.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

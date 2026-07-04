@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Social Pressure — Direction 3: Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Archivo+Expanded:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0e14;         /* stadium night */
+  --panel:#141922;
+  --panel-2:#1b212d;
+  --line:#28303e;
+  --text:#eef2f7;
+  --dim:#7d8797;
+  --lime:#c8f94a;       /* electric lime — YOU */
+  --mag:#ff3d78;        /* magenta — RIVAL */
+  --amber:#ffb020;      /* streak fire */
+  --cyan:#38d6e0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#05070b;
+  font-family:"Archivo",system-ui,sans-serif;color:var(--text);
+  -webkit-font-smoothing:antialiased;padding:32px 20px 64px;
+}
+.expanded{font-family:"Archivo Expanded","Archivo",sans-serif}
+.deck-title{max-width:1400px;margin:0 auto 28px}
+.deck-title b{font-family:"Archivo Expanded";font-size:24px;font-weight:900;letter-spacing:-.01em;text-transform:uppercase}
+.deck-title .tag{color:var(--lime);font-weight:800;margin-left:10px;font-size:13px;letter-spacing:.14em;text-transform:uppercase}
+.deck-title p{color:#8b95a5;font-size:13px;margin-top:8px;max-width:660px;line-height:1.5}
+.row{display:flex;gap:26px;overflow-x:auto;padding-bottom:20px;max-width:1400px;margin:0 auto;align-items:flex-start}
+.screen{flex:0 0 auto;width:390px}
+.screen h2{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#8b95a5;margin-bottom:10px;display:flex;justify-content:space-between}
+.screen h2 em{font-style:normal;color:var(--lime)}
+.phone{
+  width:390px;height:844px;background:var(--bg);border-radius:36px;overflow:hidden;position:relative;
+  border:1px solid #222a36;box-shadow:0 26px 54px rgba(0,0,0,.7);display:flex;flex-direction:column;
+}
+.status{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;font-weight:700;color:var(--text);flex:0 0 auto}
+.status .dots{letter-spacing:2px;opacity:.7}
+.topbar{padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex:0 0 auto;border-bottom:1px solid var(--line)}
+.wm{font-family:"Archivo Expanded";font-weight:900;font-size:15px;letter-spacing:-.01em;text-transform:uppercase;font-style:italic}
+.wm .z{color:var(--lime)}
+.chip{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.iconbtn{color:var(--dim)}
+.iconbtn svg{width:20px;height:20px;display:block}
+.scroll{flex:1 1 auto;overflow:hidden;position:relative}
+.pad{padding:18px 20px 26px}
+
+/* ===== HOME ===== */
+.home-h{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px}
+.home-h h1{font-family:"Archivo Expanded";font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-.01em}
+.home-h .wk{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.home-sub{font-size:12px;color:var(--dim);margin-bottom:20px;font-weight:600}
+/* project card = matchup */
+.match{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:13px;text-decoration:none;color:inherit;display:block;position:relative;overflow:hidden}
+.match::before{content:"";position:absolute;inset:0 auto 0 0;width:3px}
+.match.lead::before{background:var(--lime)}
+.match.trail::before{background:var(--mag)}
+.match.tie::before{background:var(--cyan)}
+.match .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}
+.match .mname{font-family:"Archivo Expanded";font-weight:800;font-size:16px;text-transform:uppercase;letter-spacing:-.01em}
+.match .mcad{font-size:10px;color:var(--dim);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.verdict{font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:6px}
+.verdict.win{background:rgba(200,249,74,.15);color:var(--lime)}
+.verdict.lose{background:rgba(255,61,120,.15);color:var(--mag)}
+.verdict.tie{background:rgba(56,214,224,.15);color:var(--cyan)}
+/* mini scoreline */
+.scoreline{display:flex;align-items:center;gap:10px}
+.side{flex:1}
+.side .snm{font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:flex;justify-content:space-between}
+.side.me .snm{color:var(--lime)}
+.side.op .snm{color:var(--mag)}
+.mini-bar{height:8px;border-radius:4px;background:var(--panel-2);overflow:hidden;position:relative}
+.mini-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.side.me .mini-bar i{background:var(--lime)}
+.side.op .mini-bar i{background:var(--mag)}
+.side .score{font-family:"Archivo Expanded";font-weight:900;font-size:15px}
+.vs-mini{font-family:"Archivo Expanded";font-weight:900;font-size:11px;color:var(--dim)}
+.addmatch{width:100%;margin-top:8px;background:var(--lime);color:#0b0e14;border:0;border-radius:14px;padding:16px;font-family:"Archivo Expanded";font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.addmatch svg{width:18px;height:18px}
+
+/* ===== PROJECT — the arena ===== */
+.arena-top{padding:14px 20px 8px}
+.arena-top h1{font-family:"Archivo Expanded";font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:-.01em}
+.arena-top .sub{font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+.clock{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px 20px}
+.clock .lbl{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.clock .time{font-family:"Archivo Expanded";font-weight:900;font-size:14px;color:var(--amber)}
+/* the race lanes */
+.race{padding:20px 20px 6px}
+.lane{margin-bottom:22px}
+.lane .lhead{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:9px}
+.lane .runner{display:flex;align-items:center;gap:10px}
+.tag-av{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-family:"Archivo Expanded";font-weight:900;font-size:16px}
+.tag-av.me{background:var(--lime);color:#0b0e14}
+.tag-av.op{background:var(--mag);color:#fff}
+.lane .rn{font-family:"Archivo Expanded";font-weight:800;font-size:16px;text-transform:uppercase;letter-spacing:-.01em}
+.lane .rt{font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.lane .youbadge{font-size:9px;font-weight:900;color:#0b0e14;background:var(--lime);padding:1px 6px;border-radius:5px;letter-spacing:.06em}
+.bignum{font-family:"Archivo Expanded";font-weight:900;font-size:34px;line-height:.85;text-align:right}
+.bignum .goal{font-size:15px;color:var(--dim);font-weight:800}
+.lane.me .bignum{color:var(--lime)}
+.lane.op .bignum{color:var(--mag)}
+/* track */
+.track{height:20px;border-radius:10px;background:var(--panel);position:relative;overflow:hidden;border:1px solid var(--line)}
+.track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:10px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
+.lane.me .track .fill{background:linear-gradient(90deg,#8fb82e,var(--lime))}
+.lane.op .track .fill{background:linear-gradient(90deg,#c22a5c,var(--mag))}
+.track .fill .dot{width:8px;height:8px;border-radius:50%;background:#0b0e14;opacity:.55}
+.track .goalpost{position:absolute;top:-3px;bottom:-3px;right:0;width:2px;background:var(--text);opacity:.5}
+.lane .lfoot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.streak-tag{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.04em}
+.streak-tag.cold{color:var(--dim)}
+.gap{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.gap.behind{color:var(--mag)}
+.gap.ahead{color:var(--lime)}
+.gap.met{color:var(--dim)}
+.divider-vs{text-align:center;font-family:"Archivo Expanded";font-weight:900;font-size:12px;color:var(--dim);letter-spacing:.2em;margin:-6px 0 14px;position:relative}
+.divider-vs::before,.divider-vs::after{content:"";position:absolute;top:50%;width:38%;height:1px;background:var(--line)}
+.divider-vs::before{left:0}.divider-vs::after{right:0}
+
+/* feed */
+.feed-h{padding:10px 20px 4px;display:flex;justify-content:space-between;align-items:baseline}
+.feed-h .ft{font-family:"Archivo Expanded";font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.02em}
+.feed-h .fc{font-size:10px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.play{display:flex;gap:12px;padding:12px 20px;border-top:1px solid var(--line)}
+.play .pav{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-family:"Archivo Expanded";font-weight:900;font-size:13px;flex:0 0 auto}
+.play .pav.me{background:var(--lime);color:#0b0e14}.play .pav.op{background:var(--mag);color:#fff}
+.play .pc{flex:1}
+.play .pl1{font-size:13px;font-weight:600}
+.play .pl1 b{font-weight:800;text-transform:uppercase;letter-spacing:-.01em}
+.play .pwhen{font-size:10px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.play .pnote{font-size:12px;color:var(--text);margin-top:6px;padding-left:10px;border-left:2px solid var(--line);font-weight:500}
+.rxs{display:flex;gap:6px;margin-top:9px}
+.rx{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:12px;display:flex;gap:5px;align-items:center;font-weight:700}
+.rx.on{border-color:var(--lime);color:var(--lime)}
+.rx b{font-size:10px;color:var(--dim)}
+.rx.add{border-style:dashed;color:var(--dim)}
+.nudge-play{padding:11px 20px;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;background:rgba(255,176,32,.04)}
+.nudge-play .nb{width:32px;height:32px;border-radius:9px;background:rgba(255,176,32,.15);display:grid;place-items:center;color:var(--amber);flex:0 0 auto}
+.nudge-play .nb svg{width:15px;height:15px}
+.nudge-play .nt{font-size:12px;color:var(--dim);font-weight:600}
+.nudge-play .nt b{color:var(--text);font-weight:800;text-transform:uppercase}
+/* action bar */
+.abar{flex:0 0 auto;border-top:1px solid var(--line);background:var(--panel);padding:12px 16px;display:flex;gap:10px}
+.nudge-cta{width:54px;flex:0 0 auto;border:1px solid var(--line);border-radius:13px;background:var(--panel-2);display:grid;place-items:center;color:var(--amber);cursor:pointer}
+.nudge-cta svg{width:20px;height:20px}
+.log-cta{flex:1;border:0;border-radius:13px;background:var(--lime);color:#0b0e14;font-family:"Archivo Expanded";font-weight:900;font-size:15px;text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer}
+.log-cta svg{width:19px;height:19px}
+
+/* ===== LOG ===== */
+.log-wrap{flex:1;display:flex;flex-direction:column;padding:20px}
+.log-top{text-align:center}
+.log-top .kick{font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--mag)}
+.log-top h1{font-family:"Archivo Expanded";font-size:24px;font-weight:900;text-transform:uppercase;margin-top:6px;line-height:1}
+.log-top p{font-size:12px;color:var(--dim);margin-top:8px;font-weight:600}
+.log-top p b{color:var(--lime)}
+.score-preview{display:flex;align-items:stretch;gap:10px;margin:20px 0}
+.sp{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.sp .spl{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.sp .spn{font-family:"Archivo Expanded";font-weight:900;font-size:24px;margin-top:3px}
+.sp.now .spn{color:var(--mag)}
+.sp.after .spn{color:var(--lime)}
+.sp .arrow{align-self:center;color:var(--dim);font-size:18px}
+.arrow-mid{display:flex;align-items:center;color:var(--dim)}
+.log-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.smash{
+  width:216px;height:216px;border-radius:50%;border:0;cursor:pointer;
+  background:radial-gradient(circle at 50% 36%,#e4ff6e,var(--lime));color:#0b0e14;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  box-shadow:0 0 0 8px rgba(200,249,74,.12),0 0 60px rgba(200,249,74,.3);
+  font-family:"Archivo Expanded";
+}
+.smash .plus{font-size:64px;font-weight:900;line-height:.9}
+.smash .sl{font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.smash-hint{font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.note-in{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-family:"Archivo";font-size:13px;color:var(--text);font-weight:600}
+.note-in::placeholder{color:#5a6474}
+/* done */
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:0 26px}
+.done .ring{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(200,249,74,.18),transparent 70%);display:grid;place-items:center;border:2px solid var(--lime)}
+.done .ring svg{width:60px;height:60px;stroke:var(--lime)}
+.done .kick{font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--lime)}
+.done h1{font-family:"Archivo Expanded";font-size:26px;font-weight:900;text-transform:uppercase;line-height:.95}
+.done p{font-size:13px;color:var(--dim);font-weight:600;line-height:1.5}
+.done p b{color:var(--text)}
+.pushbar{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.pushbar .m{width:20px;height:20px;border-radius:6px;background:var(--mag);display:grid;place-items:center;font-size:10px;color:#fff;font-weight:900}
+
+/* ===== CREATE ===== */
+.c-head{padding:16px 20px 4px}
+.c-head h1{font-family:"Archivo Expanded";font-size:23px;font-weight:900;text-transform:uppercase;line-height:1}
+.c-head p{font-size:12px;color:var(--dim);margin-top:7px;font-weight:600}
+.c-sec{padding:16px 20px 0}
+.c-lbl{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.tpls{display:flex;gap:9px}
+.tpl{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:13px;padding:14px 6px;text-align:center;cursor:pointer}
+.tpl.on{border-color:var(--lime);background:rgba(200,249,74,.08)}
+.tpl .e{font-size:24px}
+.tpl .n{font-size:11px;font-weight:800;text-transform:uppercase;margin-top:6px;letter-spacing:.02em}
+.in{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-family:"Archivo";font-size:15px;font-weight:700;color:var(--text)}
+.in:focus{outline:none;border-color:var(--lime)}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:10px}
+.fl{font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.cadseg{display:flex;gap:8px}
+.cs{flex:1;border:1px solid var(--line);border-radius:11px;padding:11px 2px;text-align:center;font-size:11px;font-weight:900;text-transform:uppercase;color:var(--dim);cursor:pointer;letter-spacing:.04em}
+.cs.on{background:var(--lime);color:#0b0e14;border-color:var(--lime)}
+.durseg{display:flex;gap:9px}
+.ds{flex:1;border:1px solid var(--line);border-radius:11px;padding:12px;text-align:center;font-size:12px;font-weight:800;text-transform:uppercase;color:var(--dim);cursor:pointer;letter-spacing:.03em}
+.ds.on{border-color:var(--lime);color:var(--text);background:rgba(200,249,74,.06)}
+.recap{margin:20px 20px 0;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--lime);border-radius:10px;padding:13px 15px;font-size:12px;color:var(--dim);font-weight:600;line-height:1.5}
+.recap b{color:var(--text)}
+.c-cta{padding:18px 20px 24px}
+
+/* ===== INVITE ===== */
+.inv-hero{padding:24px 20px 10px;text-align:center}
+.inv-hero .kick{font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:var(--mag)}
+.matchup{display:flex;align-items:center;justify-content:center;gap:14px;margin:18px 0}
+.matchup .tag-av{width:64px;height:64px;border-radius:16px;font-size:26px}
+.matchup .vs{font-family:"Archivo Expanded";font-weight:900;font-size:20px;color:var(--dim);letter-spacing:.04em}
+.matchup .tag-av.you{background:var(--panel);border:2px dashed var(--line);color:var(--dim)}
+.inv-hero h1{font-family:"Archivo Expanded";font-size:22px;font-weight:900;text-transform:uppercase;line-height:1.05;margin-top:4px}
+.inv-hero h1 em{font-style:normal;color:var(--lime)}
+.inv-stats{margin:20px 20px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.inv-stats .s{display:flex;justify-content:space-between;padding:12px 15px;font-size:13px;border-bottom:1px solid var(--line)}
+.inv-stats .s:last-child{border-bottom:0}
+.inv-stats .k{color:var(--dim);font-weight:600}
+.inv-stats .v{font-weight:800;text-transform:uppercase;letter-spacing:-.01em}
+.set-target{padding:20px 20px 0;text-align:center}
+.set-target .stl{font-family:"Archivo Expanded";font-size:14px;font-weight:900;text-transform:uppercase}
+.set-target .sth{font-size:11px;color:var(--dim);margin:5px 0 16px;font-weight:600}
+.stepper3{display:flex;align-items:center;justify-content:center;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;width:fit-content;margin:0 auto;background:var(--panel)}
+.stepper3 button{width:56px;height:76px;background:var(--panel-2);border:0;font-size:26px;color:var(--lime);cursor:pointer;font-family:"Archivo Expanded";font-weight:900}
+.stepper3 .val{width:120px;text-align:center;padding:8px}
+.stepper3 .val b{font-family:"Archivo Expanded";font-weight:900;font-size:40px;color:var(--lime);display:block;line-height:1}
+.stepper3 .val span{font-size:9px;color:var(--dim);font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.inv-cta{padding:20px 20px 0}
+.inv-foot{text-align:center;font-size:10px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:12px 20px 0}
+
+.scroll::-webkit-scrollbar{width:0}
+</style>
+</head>
+<body>
+<div class="deck-title">
+  <b>Social Pressure</b><span class="tag">Direction 3 · Arena</span>
+  <p>A scoreboard for your discipline. Dark stadium palette, condensed uppercase type, and every partnership rendered as a head-to-head race down two lanes. Electric lime is you, magenta is your rival, and the clock is always running down. Built for people who show up when someone's watching the tape.</p>
+</div>
+
+<div class="row">
+
+  <!-- ===== 1 HOME ===== -->
+  <div class="screen">
+    <h2>1 — Home <em>the standings</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="wm">SOCIAL<span class="z">/</span>PRESSURE</div><div class="chip">HENRY</div></div>
+      <div class="scroll"><div class="pad">
+        <div class="home-h"><h1>Standings</h1><div class="wk">Wk of Jun 30</div></div>
+        <div class="home-sub">3 live matchups · 2 days left on the clock</div>
+
+        <a class="match trail">
+          <div class="mh"><div><div class="mname">Gym Buddies</div><div class="mcad">Sessions · Weekly · vs Daniel</div></div><span class="verdict lose">Down 1</span></div>
+          <div class="scoreline">
+            <div class="side me"><div class="snm"><span>You</span><span class="score">2/3</span></div><div class="mini-bar"><i style="width:66%"></i></div></div>
+            <div class="vs-mini">VS</div>
+            <div class="side op"><div class="snm"><span>Daniel 🔥4</span><span class="score">2/2</span></div><div class="mini-bar"><i style="width:100%"></i></div></div>
+          </div>
+        </a>
+
+        <a class="match tie">
+          <div class="mh"><div><div class="mname">Czech, Daily</div><div class="mcad">Lessons · Daily · vs Lena</div></div><span class="verdict tie">Level · Day 12</span></div>
+          <div class="scoreline">
+            <div class="side me"><div class="snm"><span>You</span><span class="score">1/1</span></div><div class="mini-bar"><i style="width:100%"></i></div></div>
+            <div class="vs-mini">VS</div>
+            <div class="side op"><div class="snm"><span>Lena</span><span class="score">1/1</span></div><div class="mini-bar"><i style="width:100%"></i></div></div>
+          </div>
+        </a>
+
+        <a class="match trail">
+          <div class="mh"><div><div class="mname">Problem Sets</div><div class="mcad">Sets · Weekly · vs Sam +1</div></div><span class="verdict lose">Down 2</span></div>
+          <div class="scoreline">
+            <div class="side me"><div class="snm"><span>You</span><span class="score">2/5</span></div><div class="mini-bar"><i style="width:40%"></i></div></div>
+            <div class="vs-mini">VS</div>
+            <div class="side op"><div class="snm"><span>Sam</span><span class="score">4/5</span></div><div class="mini-bar"><i style="width:80%"></i></div></div>
+          </div>
+        </a>
+
+        <button class="addmatch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>New matchup</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ===== 2 PROJECT / ARENA ===== -->
+  <div class="screen">
+    <h2>2 — Project <em>the arena</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar">
+        <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 18l-6-6 6-6"/></svg></div>
+        <div class="chip">GYM BUDDIES</div>
+        <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></div>
+      </div>
+      <div class="arena-top"><h1>Gym Buddies</h1><div class="sub">Sessions · Weekly · Head to head</div></div>
+      <div class="clock"><span class="lbl">Week ends Sun Jul 6</span><span class="time">⏱ 2 DAYS LEFT</span></div>
+      <div class="scroll">
+        <div class="race">
+          <!-- YOU -->
+          <div class="lane me">
+            <div class="lhead">
+              <div class="runner"><div class="tag-av me">H</div><div><div class="rn">Henry <span class="youbadge">YOU</span></div><div class="rt">Target · 3 / week</div></div></div>
+              <div class="bignum">2<span class="goal">/3</span></div>
+            </div>
+            <div class="track"><div class="fill" style="width:66%"><span class="dot"></span></div><div class="goalpost"></div></div>
+            <div class="lfoot"><span class="streak-tag">🔥 2-week streak</span><span class="gap behind">1 back — catch up</span></div>
+          </div>
+          <div class="divider-vs">VS</div>
+          <!-- DANIEL -->
+          <div class="lane op">
+            <div class="lhead">
+              <div class="runner"><div class="tag-av op">D</div><div><div class="rn">Daniel</div><div class="rt">Target · 2 / week</div></div></div>
+              <div class="bignum">2<span class="goal">/2</span></div>
+            </div>
+            <div class="track"><div class="fill" style="width:100%"><span class="dot"></span></div><div class="goalpost"></div></div>
+            <div class="lfoot"><span class="streak-tag">🔥 4-week streak</span><span class="gap met">Finished · target met</span></div>
+          </div>
+        </div>
+
+        <div class="feed-h"><span class="ft">Play by play</span><span class="fc">7 logs this week</span></div>
+        <div class="play">
+          <div class="pav op">D</div>
+          <div class="pc">
+            <div class="pl1"><b>Daniel</b> logged a session</div>
+            <div class="pwhen">Tue · 6:20 PM</div>
+            <div class="pnote">leg day — squat PR</div>
+            <div class="rxs"><span class="rx on">🔥 <b>2</b></span><span class="rx">💪 <b>1</b></span><span class="rx add">+</span></div>
+          </div>
+        </div>
+        <div class="nudge-play">
+          <div class="nb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+          <div class="nt"><b>Daniel</b> nudged you — “tape doesn't lie 👀”</div>
+        </div>
+        <div class="play">
+          <div class="pav me">H</div>
+          <div class="pc">
+            <div class="pl1"><b>You</b> logged a session</div>
+            <div class="pwhen">Mon · 7:05 AM</div>
+            <div class="rxs"><span class="rx">👏 <b>1</b></span><span class="rx add">+</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="abar">
+        <button class="nudge-cta" title="Nudge Daniel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
+        <button class="log-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>Log a session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3 LOG ===== -->
+  <div class="screen">
+    <h2>3 — Log <em>put one on the board</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg></div><div class="chip">GYM BUDDIES</div><div style="width:20px"></div></div>
+      <div class="log-wrap">
+        <div class="log-top">
+          <div class="kick">You're down 1</div>
+          <h1>Put one<br>on the board</h1>
+          <p>This log ties it up and pings <b>Daniel</b> instantly.</p>
+        </div>
+        <div class="score-preview">
+          <div class="sp now"><div class="spl">Now</div><div class="spn">2/3</div></div>
+          <div class="arrow-mid"><svg viewBox="0 0 24 24" width="22" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <div class="sp after"><div class="spl">After</div><div class="spn">3/3</div></div>
+        </div>
+        <div class="log-center">
+          <button class="smash"><span class="plus">+</span><span class="sl">Log it</span></button>
+          <div class="smash-hint">One tap. It's on the board.</div>
+          <input class="note-in" placeholder="Drop a note (optional) — “chest + arms”">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3b DONE ===== -->
+  <div class="screen">
+    <h2>3b — Logged <em>on the board</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="chip">GYM BUDDIES</div><div style="width:20px"></div></div>
+      <div class="done">
+        <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div class="kick">Logged</div>
+        <h1>3 of 3.<br>You're level.</h1>
+        <p>Target met and your streak is now <b>3 weeks</b>. You caught Daniel with 2 days to spare.</p>
+        <div class="pushbar"><span class="m">D</span>Pushed to Daniel</div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button style="border:1px solid var(--line);background:var(--panel);color:var(--dim);border-radius:12px;padding:11px 18px;font-family:Archivo;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;cursor:pointer">Undo</button>
+          <button style="border:0;background:var(--lime);color:#0b0e14;border-radius:12px;padding:11px 22px;font-family:Archivo;font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.04em;cursor:pointer">Back to arena</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 4 CREATE ===== -->
+  <div class="screen">
+    <h2>4 — Create <em>new matchup</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 18l-6-6 6-6"/></svg></div><div class="chip">NEW MATCHUP</div><div style="width:20px"></div></div>
+      <div class="scroll">
+        <div class="c-head"><h1>Set the<br>matchup</h1><p>One activity. You'll set your own target next.</p></div>
+        <div class="c-sec">
+          <div class="c-lbl">Pick a play</div>
+          <div class="tpls">
+            <div class="tpl on"><div class="e">🏋️</div><div class="n">Gym</div></div>
+            <div class="tpl"><div class="e">📚</div><div class="n">Study</div></div>
+            <div class="tpl"><div class="e">⚡</div><div class="n">Custom</div></div>
+          </div>
+        </div>
+        <div class="c-sec"><div class="c-lbl">Matchup name</div><input class="in" value="Gym Buddies"></div>
+        <div class="c-sec">
+          <div class="c-lbl">The activity</div>
+          <div class="two">
+            <div><div class="fl">Count of</div><input class="in" value="Sessions"></div>
+            <div><div class="fl">Unit</div><input class="in" value="session"></div>
+          </div>
+          <div class="fl" style="margin-top:12px">Reset the clock</div>
+          <div class="cadseg"><div class="cs">Daily</div><div class="cs on">Weekly</div><div class="cs">Monthly</div></div>
+        </div>
+        <div class="c-sec">
+          <div class="c-lbl">Season length</div>
+          <div class="durseg"><div class="ds on">No end</div><div class="ds">Ends on date</div></div>
+        </div>
+        <div class="recap">Score by logging <b>sessions</b>. The board resets <b>every week</b>, runs with <b>no end date</b>, and you set your own target when you join.</div>
+        <div class="c-cta"><button class="addmatch">Create &amp; copy invite link →</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 5 INVITE ===== -->
+  <div class="screen">
+    <h2>5 — Invite <em>accept the challenge</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●● ▐</span></div>
+      <div class="topbar"><div class="wm">SOCIAL<span class="z">/</span>PRESSURE</div><div class="chip">INVITE</div></div>
+      <div class="scroll">
+        <div class="inv-hero">
+          <div class="kick">Daniel challenged you</div>
+          <div class="matchup"><div class="tag-av op">D</div><div class="vs">VS</div><div class="tag-av you">?</div></div>
+          <h1>Line up against <em>Daniel</em> at the gym</h1>
+        </div>
+        <div class="inv-stats">
+          <div class="s"><span class="k">Matchup</span><span class="v">Gym Buddies</span></div>
+          <div class="s"><span class="k">Activity</span><span class="v">Sessions · Weekly</span></div>
+          <div class="s"><span class="k">Daniel's target</span><span class="v">2 / week</span></div>
+          <div class="s"><span class="k">Season</span><span class="v">No end</span></div>
+        </div>
+        <div class="set-target">
+          <div class="stl">Set your target</div>
+          <div class="sth">Your number is yours — beat it, not him.</div>
+          <div class="stepper3">
+            <button>−</button>
+            <div class="val"><b>3</b><span>/ week</span></div>
+            <button>+</button>
+          </div>
+        </div>
+        <div class="inv-cta"><button class="addmatch">Accept &amp; join</button></div>
+        <div class="inv-foot">You can change your target anytime</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

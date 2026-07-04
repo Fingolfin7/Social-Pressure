@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Social Pressure — Direction 1: Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4f2ec;      /* aged ledger paper */
+  --card:#fbfaf6;
+  --ink:#1a1a17;        /* ink black */
+  --ink-2:#5a574d;      /* faded ink */
+  --rule:#d8d4c7;       /* hairline rule */
+  --rule-2:#e8e5db;
+  --signal:#c0392b;     /* behind / overdue red */
+  --ahead:#1a1a17;      /* met = plain ink, no green party */
+  --fill:#2b2a25;
+  --accent:#0f4c3a;     /* deep ledger green, used once */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#c9c4b6;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  padding:32px 20px 64px;
+}
+.deck-title{
+  max-width:1400px;margin:0 auto 28px;color:#33312a;
+  font-size:13px;letter-spacing:.24em;text-transform:uppercase;
+}
+.deck-title b{font-weight:700}
+.deck-title span{color:#6b675b;letter-spacing:.05em;text-transform:none;display:block;margin-top:6px;font-size:12px}
+.row{
+  display:flex;gap:26px;overflow-x:auto;padding-bottom:20px;
+  max-width:1400px;margin:0 auto;align-items:flex-start;
+}
+.screen{flex:0 0 auto;width:390px}
+.screen h2{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#4b4840;
+  margin-bottom:10px;font-weight:600;
+  display:flex;justify-content:space-between;
+}
+.screen h2 em{font-style:normal;color:#847f70}
+.phone{
+  width:390px;height:844px;background:var(--paper);
+  border-radius:30px;overflow:hidden;position:relative;
+  box-shadow:0 1px 0 #fff inset, 0 22px 44px rgba(40,38,30,.34);
+  border:1px solid #b3ae9e;
+  display:flex;flex-direction:column;
+}
+/* status bar */
+.status{
+  height:44px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;font-size:12px;font-weight:600;color:var(--ink);flex:0 0 auto;
+}
+.status .dots{letter-spacing:2px}
+/* app chrome */
+.topbar{
+  padding:12px 20px 14px;border-bottom:1.5px solid var(--ink);
+  display:flex;justify-content:space-between;align-items:baseline;flex:0 0 auto;
+  background:var(--paper);
+}
+.wordmark{font-size:13px;font-weight:700;letter-spacing:.02em}
+.wordmark .slash{color:var(--signal)}
+.topbar .meta{font-size:11px;color:var(--ink-2);letter-spacing:.04em}
+.scroll{flex:1 1 auto;overflow:hidden;position:relative}
+.pad{padding:18px 20px 28px}
+
+/* ---- shared ledger primitives ---- */
+.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);margin-bottom:4px}
+.rule{height:1px;background:var(--rule);margin:16px 0}
+.rule.strong{background:var(--ink);height:1.5px}
+
+/* project list */
+.ledger-head{
+  display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:2px;
+}
+.ledger-head h1{font-size:22px;letter-spacing:-.01em;font-weight:700}
+.ledger-head .count{font-size:11px;color:var(--ink-2)}
+.subhead{font-size:11px;color:var(--ink-2);letter-spacing:.02em;margin-bottom:20px}
+
+.proj{
+  border-top:1px solid var(--rule);padding:16px 0 15px;text-decoration:none;color:inherit;display:block;
+}
+.proj:last-of-type{border-bottom:1px solid var(--rule)}
+.proj .line1{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.proj .name{font-size:16px;font-weight:600}
+.proj .cad{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.proj .members{font-size:12px;color:var(--ink-2);margin-bottom:11px}
+/* mini paired bars */
+.stack{display:flex;flex-direction:column;gap:7px}
+.entry{display:grid;grid-template-columns:64px 1fr 40px;align-items:center;gap:10px}
+.entry .who{font-size:12px;color:var(--ink)}
+.bar{height:10px;background:var(--rule-2);position:relative;border:1px solid var(--rule)}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--fill);display:block}
+.bar.behind i{background:repeating-linear-gradient(45deg,var(--signal),var(--signal) 3px,#d65a4d 3px,#d65a4d 6px)}
+.tick{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--ink)}
+.entry .num{font-size:12px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.entry .num.behind{color:var(--signal)}
+.flag{
+  display:inline-block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--signal);color:var(--signal);padding:1px 5px;margin-left:8px;vertical-align:1px;
+}
+.flag.ok{border-color:var(--ink-2);color:var(--ink-2)}
+
+/* ===== PROJECT SCREEN ===== */
+.proj-hero{padding:16px 20px 10px;background:var(--paper)}
+.proj-hero h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.proj-hero .activity{font-size:12px;color:var(--ink-2);margin-top:3px;letter-spacing:.02em}
+.period-strip{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);
+  padding:9px 20px;border-top:1px solid var(--rule);border-bottom:1.5px solid var(--ink);background:var(--card);
+}
+.period-strip b{color:var(--ink)}
+/* member ledger rows — the centerpiece */
+.mrow{padding:16px 20px;border-bottom:1px solid var(--rule);position:relative}
+.mrow.self{background:#efece2}
+.mrow .mtop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.mrow .mname{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.mono-avatar{
+  width:22px;height:22px;border:1.5px solid var(--ink);display:grid;place-items:center;
+  font-size:11px;font-weight:700;
+}
+.mrow .you-tag{font-size:9px;letter-spacing:.14em;color:var(--ink-2);border:1px solid var(--rule);padding:1px 5px;text-transform:uppercase}
+.bignum{font-variant-numeric:tabular-nums;font-size:15px;font-weight:700}
+.bignum .of{color:var(--ink-2);font-weight:400}
+.bignum .of b{color:var(--ink);font-weight:600}
+/* big progress bar w/ target tick */
+.pbar{height:16px;background:#fff;border:1.5px solid var(--ink);position:relative;margin-bottom:9px}
+.pbar i{position:absolute;left:0;top:0;bottom:0;background:var(--fill)}
+.pbar.behind i{background:var(--signal)}
+.pbar .target{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.pbar .target::after{content:"TARGET";position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:.1em;color:var(--ink-2)}
+.mmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2)}
+.mmeta .streak{color:var(--ink);font-weight:600}
+.mmeta .streak.cold{color:var(--ink-2);font-weight:400}
+.deficit{color:var(--signal);font-weight:600}
+
+/* history feed */
+.feed-head{padding:16px 20px 8px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);display:flex;justify-content:space-between}
+.event{padding:11px 20px;border-top:1px solid var(--rule-2);display:grid;grid-template-columns:52px 1fr;gap:12px}
+.event .ts{font-size:10px;color:var(--ink-2);letter-spacing:.04em;padding-top:2px;font-variant-numeric:tabular-nums}
+.event .body .l1{font-size:13px}
+.event .body .l1 b{font-weight:600}
+.event .body .note{font-size:12px;color:var(--ink-2);margin-top:2px;border-left:2px solid var(--rule);padding-left:8px}
+.reactions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.rx{font-size:11px;border:1px solid var(--rule);padding:2px 7px;color:var(--ink);display:flex;gap:4px;align-items:center}
+.rx.add{color:var(--ink-2);border-style:dashed}
+.rx b{font-weight:600;font-size:10px}
+.nudge-line{padding:11px 20px;border-top:1px solid var(--rule-2);font-size:12px;color:var(--ink-2);display:flex;gap:12px}
+.nudge-line .ts{font-size:10px;padding-top:1px;width:40px;flex:0 0 auto}
+
+/* bottom action bar */
+.actionbar{
+  flex:0 0 auto;border-top:1.5px solid var(--ink);background:var(--card);padding:12px 16px;
+  display:flex;gap:10px;
+}
+.btn{
+  font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer;
+  border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);padding:13px 16px;flex:1;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn.ghost{background:transparent;color:var(--ink);flex:0 0 auto;width:56px}
+.btn svg{width:15px;height:15px}
+
+/* ===== LOG SCREEN ===== */
+.log-wrap{flex:1;display:flex;flex-direction:column;padding:24px 20px 20px}
+.log-ctx{text-align:center;margin-bottom:6px}
+.log-ctx .eyebrow{margin-bottom:6px}
+.log-ctx h1{font-size:19px;font-weight:700}
+.log-ctx p{font-size:12px;color:var(--ink-2);margin-top:5px}
+.log-status{
+  margin:20px 0;border:1px solid var(--rule);padding:14px;background:var(--card);
+  display:grid;grid-template-columns:1fr auto;gap:8px 12px;font-size:12px;
+}
+.log-status .k{color:var(--ink-2)}
+.log-status .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.log-status .v.behind{color:var(--signal)}
+.log-big{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+}
+.log-button{
+  width:210px;height:210px;border-radius:50%;border:2.5px solid var(--ink);
+  background:var(--ink);color:var(--paper);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  font-family:inherit;
+  box-shadow:0 0 0 6px var(--paper),0 0 0 8px var(--rule);
+}
+.log-button .plus{font-size:56px;font-weight:400;line-height:1}
+.log-button .lbl{font-size:11px;letter-spacing:.22em;text-transform:uppercase}
+.log-hint{font-size:11px;color:var(--ink-2);text-align:center}
+.note-field{
+  width:100%;border:1px solid var(--rule);background:var(--card);padding:11px 13px;
+  font-family:inherit;font-size:12px;color:var(--ink);
+}
+.note-field::placeholder{color:#a8a394}
+/* confirmed state */
+.log-done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:0 30px}
+.done-mark{width:120px;height:120px;border:2.5px solid var(--accent);border-radius:50%;display:grid;place-items:center}
+.done-mark svg{width:52px;height:52px;stroke:var(--accent)}
+.log-done h1{font-size:20px;font-weight:700}
+.log-done .newnum{font-size:13px;color:var(--ink-2)}
+.log-done .newnum b{color:var(--ink)}
+.log-done .pushed{font-size:11px;color:var(--ink-2);border:1px solid var(--rule);padding:6px 12px;letter-spacing:.06em}
+
+/* ===== CREATE ===== */
+.form-h{padding:18px 20px 4px}
+.form-h h1{font-size:20px;font-weight:700}
+.form-h p{font-size:12px;color:var(--ink-2);margin-top:3px}
+.fld{padding:0 20px;margin-top:18px}
+.fld > label{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);margin-bottom:8px}
+.templates{display:flex;gap:8px}
+.tpl{
+  flex:1;border:1.5px solid var(--rule);background:var(--card);padding:12px 8px;text-align:center;cursor:pointer;
+}
+.tpl.on{border-color:var(--ink);background:var(--paper)}
+.tpl .ico{font-size:20px}
+.tpl .t{font-size:11px;font-weight:600;margin-top:5px}
+.inp{width:100%;border:1.5px solid var(--rule);background:var(--card);padding:12px;font-family:inherit;font-size:14px;color:var(--ink)}
+.inp:focus{outline:none;border-color:var(--ink)}
+.triple{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.triple .mini-lbl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin-bottom:4px}
+.seg{display:flex;border:1.5px solid var(--rule)}
+.seg span{flex:1;text-align:center;font-size:11px;padding:9px 2px;cursor:pointer;color:var(--ink-2)}
+.seg span.on{background:var(--ink);color:var(--paper)}
+.dur{display:flex;gap:8px}
+.dur .opt{flex:1;border:1.5px solid var(--rule);padding:11px;text-align:center;font-size:12px;cursor:pointer;color:var(--ink-2)}
+.dur .opt.on{border-color:var(--ink);color:var(--ink);background:var(--paper)}
+.preview-line{
+  margin:22px 20px 0;padding:12px 14px;border:1px dashed var(--rule);background:var(--card);
+  font-size:12px;color:var(--ink-2);
+}
+.preview-line b{color:var(--ink)}
+
+/* ===== INVITE ===== */
+.inv-top{padding:26px 20px 20px;text-align:center;border-bottom:1.5px solid var(--ink)}
+.inv-top .eyebrow{margin-bottom:10px}
+.inv-avatars{display:flex;justify-content:center;align-items:center;gap:0;margin-bottom:14px}
+.inv-avatars .mono-avatar{width:44px;height:44px;font-size:16px;background:var(--paper)}
+.inv-avatars .plus{margin:0 -6px;z-index:2;background:var(--paper);border:1.5px solid var(--ink);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px}
+.inv-avatars .mono-avatar.you{border-style:dashed;color:var(--ink-2)}
+.inv-top h1{font-size:19px;font-weight:700;line-height:1.3}
+.inv-top h1 b{border-bottom:2px solid var(--signal)}
+.inv-card{margin:18px 20px;border:1.5px solid var(--ink)}
+.inv-card .r{display:flex;justify-content:space-between;padding:11px 14px;font-size:12px;border-bottom:1px solid var(--rule)}
+.inv-card .r:last-child{border-bottom:0}
+.inv-card .r .k{color:var(--ink-2);letter-spacing:.04em}
+.inv-card .r .v{font-weight:600;text-align:right}
+.inv-set{padding:4px 20px 0}
+.inv-set > label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);display:block;margin-bottom:10px}
+.stepper{display:flex;align-items:stretch;border:1.5px solid var(--ink);width:fit-content;margin:0 auto}
+.stepper button{width:52px;font-size:22px;background:var(--card);border:0;cursor:pointer;font-family:inherit;color:var(--ink)}
+.stepper .val{width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink);padding:8px 0}
+.stepper .val b{font-size:30px;font-weight:700;line-height:1}
+.stepper .val span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin-top:2px}
+.inv-note{text-align:center;font-size:11px;color:var(--ink-2);margin:14px 20px 0}
+
+.scroll::-webkit-scrollbar{width:0}
+</style>
+</head>
+<body>
+<div class="deck-title">
+  <b>SOCIAL PRESSURE</b> — DIRECTION 1 / LEDGER
+  <span>A stark accountability register. Ink on paper, monospace numerals, everything reconciles against a target. The accountant's view of your discipline.</span>
+</div>
+
+<div class="row">
+
+  <!-- ============ SCREEN 1: HOME ============ -->
+  <div class="screen">
+    <h2>1 — Home / Projects <em>project list</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●●  ▐</span></div>
+      <div class="topbar">
+        <div class="wordmark">SOCIAL<span class="slash">/</span>PRESSURE</div>
+        <div class="meta">HENRY</div>
+      </div>
+      <div class="scroll"><div class="pad">
+        <div class="ledger-head">
+          <h1>Open accounts</h1>
+          <div class="count">3 active</div>
+        </div>
+        <div class="subhead">Week of Jun 30 — reconciled against target</div>
+
+        <a class="proj">
+          <div class="line1"><span class="name">Gym Buddies</span><span class="cad">Weekly</span></div>
+          <div class="members">Henry · Daniel — sessions</div>
+          <div class="stack">
+            <div class="entry"><span class="who">You</span>
+              <div class="bar behind"><i style="width:66%"></i><span class="tick" style="left:100%"></span></div>
+              <span class="num behind">2/3</span></div>
+            <div class="entry"><span class="who">Daniel</span>
+              <div class="bar"><i style="width:100%"></i><span class="tick" style="left:100%"></span></div>
+              <span class="num">2/2</span></div>
+          </div>
+          <div style="margin-top:9px;font-size:11px"><span class="flag">You −1</span><span class="flag ok">Daniel met</span></div>
+        </a>
+
+        <a class="proj">
+          <div class="line1"><span class="name">Czech, daily</span><span class="cad">Daily</span></div>
+          <div class="members">Henry · Lena — lessons</div>
+          <div class="stack">
+            <div class="entry"><span class="who">You</span>
+              <div class="bar"><i style="width:100%"></i><span class="tick" style="left:100%"></span></div>
+              <span class="num">1/1</span></div>
+            <div class="entry"><span class="who">Lena</span>
+              <div class="bar"><i style="width:100%"></i><span class="tick" style="left:100%"></span></div>
+              <span class="num">1/1</span></div>
+          </div>
+          <div style="margin-top:9px;font-size:11px"><span class="flag ok">Both met · day 12</span></div>
+        </a>
+
+        <a class="proj">
+          <div class="line1"><span class="name">Problem Sets</span><span class="cad">Weekly</span></div>
+          <div class="members">Henry · Sam · Priya — sets</div>
+          <div class="stack">
+            <div class="entry"><span class="who">You</span>
+              <div class="bar behind"><i style="width:40%"></i><span class="tick" style="left:100%"></span></div>
+              <span class="num behind">2/5</span></div>
+            <div class="entry"><span class="who">Sam</span>
+              <div class="bar"><i style="width:80%"></i><span class="tick" style="left:100%"></span></div>
+              <span class="num">4/5</span></div>
+          </div>
+          <div style="margin-top:9px;font-size:11px"><span class="flag">You −3</span><span class="flag ok">2 partners ahead</span></div>
+        </a>
+
+        <div class="rule"></div>
+        <button class="btn" style="width:100%">+ &nbsp;NEW ACCOUNT</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 2: PROJECT ============ -->
+  <div class="screen">
+    <h2>2 — Project <em>the product</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●●  ▐</span></div>
+      <div class="topbar">
+        <div class="wordmark" style="font-size:12px">‹ &nbsp;ACCOUNTS</div>
+        <div class="meta">GYM BUDDIES</div>
+      </div>
+      <div class="proj-hero">
+        <h1>Gym Buddies</h1>
+        <div class="activity">Sessions · weekly cadence · runs indefinitely</div>
+      </div>
+      <div class="period-strip"><span>THIS WEEK</span><span><b>Jun 30 – Jul 6</b> · 2 days left</span></div>
+      <div class="scroll">
+        <!-- Henry (self) -->
+        <div class="mrow self">
+          <div class="mtop">
+            <div class="mname"><span class="mono-avatar">H</span>Henry <span class="you-tag">You</span></div>
+            <div class="bignum">2<span class="of"> / <b>3</b></span></div>
+          </div>
+          <div class="pbar behind"><i style="width:66%"></i><span class="target" style="left:100%"></span></div>
+          <div class="mmeta"><span class="streak">🔥 2-week streak</span><span class="deficit">1 to go — 2 days left</span></div>
+        </div>
+        <!-- Daniel -->
+        <div class="mrow">
+          <div class="mtop">
+            <div class="mname"><span class="mono-avatar">D</span>Daniel</div>
+            <div class="bignum">2<span class="of"> / <b>2</b></span></div>
+          </div>
+          <div class="pbar"><i style="width:100%"></i><span class="target" style="left:100%"></span></div>
+          <div class="mmeta"><span class="streak">🔥 4-week streak</span><span>Target met · +0</span></div>
+        </div>
+
+        <div class="feed-head"><span>Ledger · this week</span><span>7 entries</span></div>
+
+        <div class="event">
+          <div class="ts">TUE<br>18:20</div>
+          <div class="body">
+            <div class="l1"><b>Daniel</b> logged a session</div>
+            <div class="note">leg day, hit a squat PR</div>
+            <div class="reactions">
+              <span class="rx">🔥 <b>2</b></span><span class="rx">💪 <b>1</b></span><span class="rx add">+ react</span>
+            </div>
+          </div>
+        </div>
+        <div class="event">
+          <div class="ts">MON<br>07:05</div>
+          <div class="body">
+            <div class="l1"><b>Henry</b> logged a session</div>
+            <div class="reactions"><span class="rx">👏 <b>1</b></span><span class="rx add">+ react</span></div>
+          </div>
+        </div>
+        <div class="nudge-line"><span class="ts">MON</span><span><b style="color:var(--ink)">Daniel</b> nudged you — “where you at 👀”</span></div>
+        <div class="event">
+          <div class="ts">SUN<br>16:40</div>
+          <div class="body">
+            <div class="l1"><b>Daniel</b> logged a session</div>
+            <div class="reactions"><span class="rx">🔥 <b>1</b></span><span class="rx add">+ react</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="actionbar">
+        <button class="btn ghost" title="Nudge Daniel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </button>
+        <button class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          LOG A SESSION
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 3: LOG ============ -->
+  <div class="screen">
+    <h2>3 — Log event <em>one tap</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●●  ▐</span></div>
+      <div class="topbar">
+        <div class="wordmark" style="font-size:12px">✕ &nbsp;CANCEL</div>
+        <div class="meta">GYM BUDDIES</div>
+      </div>
+      <div class="log-wrap">
+        <div class="log-ctx">
+          <div class="eyebrow">Log one entry</div>
+          <h1>Gym Buddies · session</h1>
+          <p>Post it now — Daniel gets a push the instant you do.</p>
+        </div>
+        <div class="log-status">
+          <span class="k">Your count this week</span><span class="v behind">2 / 3</span>
+          <span class="k">After this entry</span><span class="v">3 / 3 · met</span>
+        </div>
+        <div class="log-big">
+          <button class="log-button">
+            <span class="plus">+</span>
+            <span class="lbl">Log session</span>
+          </button>
+          <div class="log-hint">One tap posts. No confirmation screen.</div>
+          <input class="note-field" placeholder="Add a note (optional) — e.g. chest + arms">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 3b: LOG CONFIRMED ============ -->
+  <div class="screen">
+    <h2>3b — Logged <em>instant feedback</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●●  ▐</span></div>
+      <div class="topbar">
+        <div class="wordmark" style="font-size:12px">GYM BUDDIES</div>
+        <div class="meta">DONE</div>
+      </div>
+      <div class="log-done">
+        <div class="done-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h1>Entry posted.</h1>
+        <div class="newnum">Your week is now <b>3 / 3</b> — target met, streak → 3 weeks.</div>
+        <div class="pushed">↗ &nbsp;PUSHED TO DANIEL</div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="btn ghost" style="width:auto;padding:11px 18px">Undo</button>
+          <button class="btn" style="flex:0 0 auto;padding:11px 22px">Back to project</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 4: CREATE ============ -->
+  <div class="screen">
+    <h2>4 — New account <em>create project</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●●  ▐</span></div>
+      <div class="topbar">
+        <div class="wordmark" style="font-size:12px">‹ &nbsp;BACK</div>
+        <div class="meta">STEP 1 OF 1</div>
+      </div>
+      <div class="scroll">
+        <div class="form-h">
+          <h1>Open a new account</h1>
+          <p>One shared activity. You set your own target after.</p>
+        </div>
+
+        <div class="fld">
+          <label>Start from</label>
+          <div class="templates">
+            <div class="tpl on"><div class="ico">🏋️</div><div class="t">Gym buddy</div></div>
+            <div class="tpl"><div class="ico">📚</div><div class="t">Study partner</div></div>
+            <div class="tpl"><div class="ico">✎</div><div class="t">Custom</div></div>
+          </div>
+        </div>
+
+        <div class="fld">
+          <label>Account name</label>
+          <input class="inp" value="Gym Buddies">
+        </div>
+
+        <div class="fld">
+          <label>The activity</label>
+          <div class="triple">
+            <div><div class="mini-lbl">Name</div><input class="inp" value="Sessions" style="font-size:12px;padding:10px"></div>
+            <div><div class="mini-lbl">Unit</div><input class="inp" value="session" style="font-size:12px;padding:10px"></div>
+            <div><div class="mini-lbl">Every</div>
+              <div class="seg"><span>Day</span><span class="on">Wk</span><span>Mo</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fld">
+          <label>Runs for</label>
+          <div class="dur">
+            <div class="opt on">Indefinitely</div>
+            <div class="opt">Until a date</div>
+          </div>
+        </div>
+
+        <div class="preview-line">READS AS → <b>“Sessions”</b>, one session, counted <b>weekly</b>, no end date.</div>
+
+        <div class="fld" style="margin-top:24px;margin-bottom:24px">
+          <button class="btn" style="width:100%">CREATE &amp; GET INVITE LINK →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 5: INVITE ============ -->
+  <div class="screen">
+    <h2>5 — Join <em>invite accept</em></h2>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="dots">●●●  ▐</span></div>
+      <div class="topbar">
+        <div class="wordmark">SOCIAL<span class="slash">/</span>PRESSURE</div>
+        <div class="meta">INVITE</div>
+      </div>
+      <div class="inv-top">
+        <div class="eyebrow">Daniel invited you</div>
+        <div class="inv-avatars">
+          <span class="mono-avatar">D</span>
+          <span class="plus">+</span>
+          <span class="mono-avatar you">?</span>
+        </div>
+        <h1>Keep <b>Daniel</b> honest at the gym.</h1>
+      </div>
+      <div class="inv-card">
+        <div class="r"><span class="k">Account</span><span class="v">Gym Buddies</span></div>
+        <div class="r"><span class="k">Activity</span><span class="v">Sessions</span></div>
+        <div class="r"><span class="k">Cadence</span><span class="v">Weekly</span></div>
+        <div class="r"><span class="k">Daniel's target</span><span class="v">2 / week</span></div>
+        <div class="r"><span class="k">Runs</span><span class="v">Indefinitely</span></div>
+      </div>
+      <div class="inv-set">
+        <label>Set your target — sessions per week</label>
+        <div class="stepper">
+          <button>−</button>
+          <div class="val"><b>3</b><span>/ week</span></div>
+          <button>+</button>
+        </div>
+      </div>
+      <div class="inv-note">Your target is yours. It doesn't have to match Daniel's.</div>
+      <div style="padding:18px 20px 0">
+        <button class="btn" style="width:100%">JOIN GYM BUDDIES</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
