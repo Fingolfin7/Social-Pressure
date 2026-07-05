@@ -12,7 +12,7 @@ def manifest(request):
     return JsonResponse(
         {
             "name": "Social Pressure",
-            "short_name": "Pressure",
+            "short_name": "Social Pressure",
             "description": "Accountability partners for your goals.",
             "id": "/",
             "start_url": "/",
