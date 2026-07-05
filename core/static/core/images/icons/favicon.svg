@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Social Pressure">
+  <title>Social Pressure</title>
+  <line x1="16" y1="32" x2="48" y2="32" stroke="#c9bda8" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="16" cy="32" r="12" fill="#d9603b"/>
+  <circle cx="48" cy="32" r="12" fill="#5c7a56"/>
+</svg>

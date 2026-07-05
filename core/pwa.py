@@ -4,8 +4,8 @@ from django.templatetags.static import static
 from django.views.decorators.cache import never_cache
 
 
-THEME_COLOR = "#18324a"
-BACKGROUND_COLOR = "#f6f7f9"
+THEME_COLOR = "#f7f1e7"
+BACKGROUND_COLOR = "#f7f1e7"
 
 
 def manifest(request):
