@@ -842,6 +842,32 @@ body {
   text-align: center;
 }
 
+.share-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.share-btn {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--cream-2);
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.share-btn svg {
+  width: 21px;
+  height: 21px;
+}
+
 .roster {
   display: grid;
   gap: 11px;

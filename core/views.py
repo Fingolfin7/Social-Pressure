@@ -268,6 +268,8 @@ def project_detail(request, pk):
         .order_by("joined_at", "pk")
     )
     join_path = reverse("project_join", kwargs={"token": project.invite_token})
+    invite_url = request.build_absolute_uri(join_path)
+    invite_message = f'Keep me honest — join "{project.name}" on Social Pressure: {invite_url}'
     return render(
         request,
         "core/project_detail.html",
@@ -289,7 +291,8 @@ def project_detail(request, pk):
             "nudge_label": _nudge_label(partners),
             "allowed_reactions": ALLOWED_REACTIONS,
             "live_version": _project_live_version(project),
-            "invite_url": request.build_absolute_uri(join_path),
+            "invite_url": invite_url,
+            "invite_message": invite_message,
             "unit_plural": _plural_unit(activity.unit),
             "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
             "vapid_public_key": settings.VAPID_PUBLIC_KEY,

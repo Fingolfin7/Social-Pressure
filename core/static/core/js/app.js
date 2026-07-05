@@ -381,6 +381,27 @@
     });
   }
 
+  function bindShare() {
+    document.querySelectorAll("[data-share-native]").forEach((button) => {
+      if (!navigator.share) {
+        button.hidden = true;
+        return;
+      }
+
+      button.addEventListener("click", () => {
+        navigator.share({
+          title: button.dataset.shareTitle || "",
+          text: button.dataset.shareText || "",
+          url: button.dataset.shareUrl || "",
+        }).catch((error) => {
+          if (!error || error.name === "AbortError") {
+            return;
+          }
+        });
+      });
+    });
+  }
+
   function bindNudges() {
     document.querySelectorAll("[data-nudge]").forEach((button) => {
       const original = button.innerHTML;
@@ -549,6 +570,7 @@
   bindReactions();
   bindLiveSync();
   bindCopies();
+  bindShare();
   bindNudges();
   bindCreateHelpers();
   bindSteppers();

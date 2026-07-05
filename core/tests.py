@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import json
+from urllib.parse import quote
 import uuid
 from unittest.mock import patch
 
@@ -378,6 +379,33 @@ class ProjectFlowTests(TestCase):
 
         self.assertContains(response, join_path)
         self.assertContains(response, 'data-copy-text="http://testserver')
+
+    def test_project_detail_solo_invite_share_links(self):
+        project, _activity, _membership = self.make_project()
+        invite_url = f"http://testserver{reverse('project_join', kwargs={'token': project.invite_token})}"
+        encoded_invite_url = quote(invite_url, safe="/")
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertContains(response, "https://wa.me")
+        self.assertContains(response, "twitter.com/intent/tweet")
+        self.assertContains(response, "sms:?body=")
+        self.assertContains(response, "fb-messenger://share")
+        self.assertContains(response, "data-share-native")
+        self.assertContains(response, encoded_invite_url)
+
+    def test_project_detail_partner_project_omits_invite_share_row(self):
+        project, _activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertNotContains(response, "share-row")
+        self.assertNotContains(response, "https://wa.me")
+        self.assertNotContains(response, "twitter.com/intent/tweet")
+        self.assertNotContains(response, "sms:?body=")
+        self.assertNotContains(response, "fb-messenger://share")
+        self.assertNotContains(response, "data-share-native")
 
     def test_project_detail_includes_bottom_bar_log_link(self):
         project, activity, _membership = self.make_project()
