@@ -402,6 +402,30 @@
     });
   }
 
+  function bindConfirms() {
+    document.querySelectorAll("[data-confirm]").forEach((root) => {
+      const row = root.querySelector("[data-confirm-row]");
+      const open = root.querySelector("[data-confirm-open]");
+      const cancel = root.querySelector("[data-confirm-cancel]");
+      if (!row || !open) {
+        return;
+      }
+
+      row.classList.add("is-hidden");
+      open.addEventListener("click", () => {
+        row.classList.remove("is-hidden");
+        open.classList.add("is-hidden");
+      });
+
+      if (cancel) {
+        cancel.addEventListener("click", () => {
+          row.classList.add("is-hidden");
+          open.classList.remove("is-hidden");
+        });
+      }
+    });
+  }
+
   function bindNudges() {
     document.querySelectorAll("[data-nudge]").forEach((button) => {
       const original = button.innerHTML;
@@ -595,6 +619,7 @@
   bindLiveSync();
   bindCopies();
   bindShare();
+  bindConfirms();
   bindNudges();
   bindCreateHelpers();
   bindSteppers();

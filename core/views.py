@@ -267,9 +267,7 @@ def project_detail(request, pk):
         .select_related("user")
         .order_by("joined_at", "pk")
     )
-    join_path = reverse("project_join", kwargs={"token": project.invite_token})
-    invite_url = request.build_absolute_uri(join_path)
-    invite_message = f'Keep me honest — join "{project.name}" on Social Pressure: {invite_url}'
+    invite = _project_invite_context(request, project)
     return render(
         request,
         "core/project_detail.html",
@@ -291,13 +289,66 @@ def project_detail(request, pk):
             "nudge_label": _nudge_label(partners),
             "allowed_reactions": ALLOWED_REACTIONS,
             "live_version": _project_live_version(project),
-            "invite_url": invite_url,
-            "invite_message": invite_message,
+            "invite_url": invite["invite_url"],
+            "invite_message": invite["invite_message"],
             "unit_plural": _plural_unit(activity.unit),
             "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
             "vapid_public_key": settings.VAPID_PUBLIC_KEY,
         },
     )
+
+
+@login_required
+def project_settings(request, pk):
+    project = _member_project_or_404(pk, request.user)
+    activity = _first_activity_or_404(project)
+    member_count = project.memberships.count()
+    invite = _project_invite_context(request, project)
+    return render(
+        request,
+        "core/project_settings.html",
+        {
+            "project": project,
+            "activity": activity,
+            "cadence_label": CADENCE_LABELS.get(activity.cadence, activity.cadence),
+            "member_count_label": _member_count_label(member_count),
+            "can_delete": project.created_by_id == request.user.id,
+            "invite_url": invite["invite_url"],
+            "invite_message": invite["invite_message"],
+        },
+    )
+
+
+@login_required
+@require_POST
+def project_leave(request, pk):
+    project = _member_project_or_404(pk, request.user)
+    membership = get_object_or_404(Membership, project=project, user=request.user)
+    project_name = project.name
+
+    with transaction.atomic():
+        if Membership.objects.filter(project=project).count() <= 1:
+            project.delete()
+        else:
+            membership.delete()
+            if project.created_by_id == request.user.id:
+                Project.objects.filter(pk=project.pk).update(created_by=None)
+
+    messages.info(request, f"You left {project_name}.")
+    return redirect("home")
+
+
+@login_required
+@require_POST
+def project_delete(request, pk):
+    project = _member_project_or_404(pk, request.user)
+    if project.created_by_id != request.user.id:
+        raise Http404("Project not found.")
+
+    project_name = project.name
+    project.delete()
+    messages.info(request, f"{project_name} is gone.")
+    return redirect("home")
 
 
 @login_required
@@ -515,6 +566,19 @@ def _member_project_or_404(pk, user):
         pk=pk,
         memberships__user=user,
     )
+
+
+def _project_invite_context(request, project):
+    join_path = reverse("project_join", kwargs={"token": project.invite_token})
+    invite_url = request.build_absolute_uri(join_path)
+    return {
+        "invite_url": invite_url,
+        "invite_message": f'Keep me honest - join "{project.name}" on Social Pressure: {invite_url}',
+    }
+
+
+def _member_count_label(count):
+    return "1 member" if count == 1 else f"{count} members"
 
 
 def _first_activity_or_404(project):

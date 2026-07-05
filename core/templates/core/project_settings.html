@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - {{ project.name }} - Social Pressure{% endblock %}
+
+{% block topbar %}
+<header class="topbar topbar--interior">
+    <a class="icon-btn" href="{% url 'project_detail' project.pk %}" aria-label="Back to project">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    <div class="topbar__context">Settings</div>
+    <span aria-hidden="true"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="screen stack--loose settings-screen">
+    <div class="project-hero">
+        <h1 class="screen-title">{{ project.name }}</h1>
+        <p class="screen-subtitle">{{ activity.name }} &middot; {{ cadence_label }} &middot; {{ member_count_label }}</p>
+    </div>
+
+    <section class="card invite-reminder">
+        <div class="stack">
+            <div class="stack">
+                <h2 class="section-title">Bring someone in.</h2>
+                <p class="screen-subtitle">Send the link to someone who should be in this with you.</p>
+            </div>
+            <button class="btn btn--soft btn--full" type="button" data-copy data-copy-text="{{ invite_url }}">
+                <span data-copy-label>Copy invite link</span>
+            </button>
+            {% include "core/_share_row.html" %}
+        </div>
+    </section>
+
+    <section class="card settings-card">
+        <div class="settings-action" data-confirm>
+            <div class="settings-action__main">
+                <div class="settings-action__copy">
+                    <h2 class="settings-action__title">Leave this project</h2>
+                    <p class="screen-subtitle">Your check-ins stay in the history.</p>
+                </div>
+                <button class="btn btn--secondary settings-action__button" type="button" data-confirm-open>Leave</button>
+            </div>
+            <div class="confirm-row" data-confirm-row>
+                <span class="confirm-row__text">You sure?</span>
+                <form method="post" action="{% url 'project_leave' project.pk %}">
+                    {% csrf_token %}
+                    <button class="btn btn--secondary settings-action__button" type="submit">Yes, leave</button>
+                </form>
+                <button class="confirm-row__cancel" type="button" data-confirm-cancel>Cancel</button>
+            </div>
+        </div>
+
+        {% if can_delete %}
+            <div class="settings-action" data-confirm>
+                <div class="settings-action__main">
+                    <div class="settings-action__copy">
+                        <h2 class="settings-action__title">Delete this project</h2>
+                        <p class="screen-subtitle">Gone for everyone, history included.</p>
+                    </div>
+                    <button class="btn btn--danger settings-action__button" type="button" data-confirm-open>Delete</button>
+                </div>
+                <div class="confirm-row" data-confirm-row>
+                    <span class="confirm-row__text">You sure?</span>
+                    <form method="post" action="{% url 'project_delete' project.pk %}">
+                        {% csrf_token %}
+                        <button class="btn btn--danger settings-action__button" type="submit">Yes, delete everything</button>
+                    </form>
+                    <button class="confirm-row__cancel" type="button" data-confirm-cancel>Cancel</button>
+                </div>
+            </div>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

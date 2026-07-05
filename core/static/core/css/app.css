@@ -347,6 +347,13 @@ body {
   color: #a8451f;
 }
 
+.btn--danger {
+  border: 1.5px solid #a8451f;
+  background: var(--card);
+  color: #a8451f;
+  box-shadow: none;
+}
+
 .btn:disabled,
 .btn.is-disabled {
   opacity: .45;
@@ -872,6 +879,71 @@ body {
 .share-btn svg {
   width: 21px;
   height: 21px;
+}
+
+.settings-card {
+  padding-block: 0;
+}
+
+.settings-action {
+  display: grid;
+  gap: var(--space-3);
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+
+.settings-action:first-child {
+  border-top: 0;
+}
+
+.settings-action__main,
+.confirm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.settings-action__copy {
+  min-width: 0;
+}
+
+.settings-action__title {
+  margin: 0 0 3px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.settings-action__button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  border-radius: 15px;
+  padding: 10px 13px;
+  font-size: 13px;
+}
+
+.confirm-row {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.confirm-row__text {
+  margin-right: auto;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.confirm-row__cancel {
+  min-height: 38px;
+  border-radius: 15px;
+  padding: 10px 12px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .roster {

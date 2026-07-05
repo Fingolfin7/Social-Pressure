@@ -8,6 +8,7 @@ import uuid
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -540,6 +541,115 @@ class ProjectFlowTests(TestCase):
         self.assertNotContains(response, "sms:?body=")
         self.assertNotContains(response, "fb-messenger://share")
         self.assertNotContains(response, "data-share-native")
+
+    def test_project_detail_links_to_project_settings(self):
+        project, _activity, _membership = self.make_project()
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertContains(response, 'aria-label="Project settings"')
+        self.assertContains(response, reverse("project_settings", kwargs={"pk": project.pk}))
+        self.assertContains(response, "M12 5.5h.01M12 12h.01M12 18.5h.01")
+
+    def test_project_settings_visibility_and_invite_copy(self):
+        project, _activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+
+        creator_response = self.client.get(reverse("project_settings", kwargs={"pk": project.pk}))
+
+        self.assertContains(creator_response, "Leave this project")
+        self.assertContains(creator_response, "Delete this project")
+        self.assertContains(creator_response, "Copy invite link")
+        self.assertContains(creator_response, 'data-copy-text="http://testserver')
+        self.assertContains(creator_response, "share-row")
+        self.assertContains(creator_response, "Sessions")
+        self.assertContains(creator_response, "weekly")
+        self.assertContains(creator_response, "2 members")
+
+        self.client.force_login(self.partner)
+        member_response = self.client.get(reverse("project_settings", kwargs={"pk": project.pk}))
+
+        self.assertContains(member_response, "Leave this project")
+        self.assertNotContains(member_response, "Delete this project")
+        self.assertContains(member_response, "Copy invite link")
+
+    def test_project_settings_non_member_gets_404(self):
+        project, _activity, _membership = self.make_project()
+        self.client.force_login(self.other)
+
+        response = self.client.get(reverse("project_settings", kwargs={"pk": project.pk}))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_member_leave_deletes_membership_targets_keeps_events_and_messages(self):
+        project, activity, membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        target = MemberTarget.objects.create(membership=membership, activity=activity, target=3)
+        event = EventLog.objects.create(activity=activity, user=self.user)
+
+        response = self.client.post(reverse("project_leave", kwargs={"pk": project.pk}))
+
+        self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
+        self.assertFalse(Membership.objects.filter(project=project, user=self.user).exists())
+        self.assertFalse(MemberTarget.objects.filter(pk=target.pk).exists())
+        self.assertTrue(EventLog.objects.filter(pk=event.pk).exists())
+        project.refresh_from_db()
+        self.assertIsNone(project.created_by)
+        self.assertEqual(
+            [str(message) for message in get_messages(response.wsgi_request)],
+            ["You left Gym Buddies."],
+        )
+
+    def test_last_member_leave_deletes_project(self):
+        project, _activity, _membership = self.make_project()
+
+        response = self.client.post(reverse("project_leave", kwargs={"pk": project.pk}))
+
+        self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
+        self.assertFalse(Project.objects.filter(pk=project.pk).exists())
+
+    def test_project_leave_non_member_gets_404(self):
+        project, _activity, _membership = self.make_project()
+        self.client.force_login(self.other)
+
+        response = self.client.post(reverse("project_leave", kwargs={"pk": project.pk}))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Project.objects.filter(pk=project.pk).exists())
+
+    def test_creator_delete_removes_project_activities_events_and_messages(self):
+        project, activity, _membership = self.make_project()
+        EventLog.objects.create(activity=activity, user=self.user)
+
+        response = self.client.post(reverse("project_delete", kwargs={"pk": project.pk}))
+
+        self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
+        self.assertFalse(Project.objects.filter(pk=project.pk).exists())
+        self.assertFalse(Activity.objects.filter(pk=activity.pk).exists())
+        self.assertFalse(EventLog.objects.filter(activity=activity).exists())
+        self.assertEqual(
+            [str(message) for message in get_messages(response.wsgi_request)],
+            ["Gym Buddies is gone."],
+        )
+
+    def test_project_delete_non_creator_member_gets_404_and_project_stays(self):
+        project, _activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        self.client.force_login(self.partner)
+
+        response = self.client.post(reverse("project_delete", kwargs={"pk": project.pk}))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Project.objects.filter(pk=project.pk).exists())
+
+    def test_project_delete_non_member_gets_404(self):
+        project, _activity, _membership = self.make_project()
+        self.client.force_login(self.other)
+
+        response = self.client.post(reverse("project_delete", kwargs={"pk": project.pk}))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Project.objects.filter(pk=project.pk).exists())
 
     def test_project_detail_includes_bottom_bar_log_link(self):
         project, activity, _membership = self.make_project()
