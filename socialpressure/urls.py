@@ -10,6 +10,7 @@ from core.views import (
     event_react,
     event_undo,
     home,
+    home_version,
     offline,
     project_create,
     project_delete,
@@ -27,6 +28,7 @@ from core.views import (
 
 urlpatterns = [
     path("", home, name="home"),
+    path("home/version/", home_version, name="home_version"),
     path("manifest.json", pwa.manifest, name="manifest"),
     path("service-worker.js", pwa.service_worker, name="service_worker"),
     path("offline/", offline, name="offline"),

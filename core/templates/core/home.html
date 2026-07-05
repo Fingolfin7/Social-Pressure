@@ -3,91 +3,93 @@
 {% block title %}Home - Social Pressure{% endblock %}
 
 {% block content %}
-<section class="screen stack--loose">
+<section class="screen stack--loose" data-live-root data-live-version="{{ live_version }}" data-live-url="{% url 'home_version' %}">
     <div class="stack">
         <h1 class="screen-title screen-title--home">{{ greeting }}, <span class="screen-title__accent">{{ display_name }}</span>.</h1>
-        <p class="screen-subtitle">{{ summary_line }}</p>
-    </div>
+        <div class="screen stack--loose" data-live="projects">
+            <p class="screen-subtitle">{{ summary_line }}</p>
 
-    {% if project_cards %}
-        <ul class="home-list">
-            {% for card in project_cards %}
-                <li>
-                    <a class="project-card" href="{% url 'project_detail' card.project.pk %}">
-                        <div class="project-card__head">
-                            <div>
-                                <h2 class="project-card__title">{{ card.project.name }}</h2>
-                                <p class="project-card__meta">{{ card.activity_name }} &middot; {{ card.cadence }} &middot; {{ card.with_line }}</p>
-                            </div>
-                            <span class="pill {{ card.status.class }}">{{ card.status.text|safe }}</span>
-                        </div>
-
-                        <div class="roster">
-                            {% for member in card.progress|slice:":3" %}
-                                <div class="roster-row member-color--{{ member.color }}">
-                                    {% include "core/_avatar.html" with avatar_user=member.user initial=member.user.first_name|default:member.user.username|slice:":1" color=member.color size=34 only %}
+            {% if project_cards %}
+                <ul class="home-list">
+                    {% for card in project_cards %}
+                        <li>
+                            <a class="project-card" href="{% url 'project_detail' card.project.pk %}">
+                                <div class="project-card__head">
                                     <div>
-                                        <div class="roster-row__top">
-                                            <span class="roster-row__name">
-                                                {{ member.display_name }}
-                                                {% if not member.is_current_user and member.streak >= 2 %}
-                                                    <span class="roster-row__streak">🔥 {{ member.streak }}</span>
-                                                {% endif %}
-                                            </span>
-                                            <span class="fraction">
-                                                {% if member.target %}
-                                                    <b>{{ member.count }}</b>/{{ member.target_count }}
-                                                {% else %}
-                                                    <b>{{ member.count }}</b>
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        {% if member.target %}
-                                            {% if member.use_bar %}
-                                                <div class="gbar" aria-hidden="true">
-                                                    <span class="gbar__fill" style="width: {{ member.bar_percent }}%;"></span>
-                                                </div>
-                                            {% else %}
-                                                <div class="gdot-row" aria-hidden="true">
-                                                    {% for dot in member.dots %}
-                                                        <span class="gdot{% if dot.filled %} gdot--filled{% endif %}{% if dot.warn %} gdot--warn{% endif %}"></span>
-                                                    {% endfor %}
-                                                    {% if member.overflow %}
-                                                        <span class="gdot-overflow">+{{ member.overflow }}</span>
-                                                    {% endif %}
-                                                </div>
-                                            {% endif %}
-                                        {% endif %}
+                                        <h2 class="project-card__title">{{ card.project.name }}</h2>
+                                        <p class="project-card__meta">{{ card.activity_name }} &middot; {{ card.cadence }} &middot; {{ card.with_line }}</p>
                                     </div>
+                                    <span class="pill {{ card.status.class }}">{{ card.status.text|safe }}</span>
                                 </div>
-                            {% endfor %}
-                            {% if card.progress|length > 3 %}
-                                <p class="project-card__meta">+{{ card.progress|length|add:"-3" }} more</p>
-                            {% endif %}
-                        </div>
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
 
-        <a class="btn btn--dark btn--full" href="{% url 'project_create' %}">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-            </svg>
-            Start a project
-        </a>
-    {% else %}
-        <section class="empty-state">
-            <h2 class="empty-state__title">Nobody's watching yet.</h2>
-            <p class="empty-state__copy">Start a project and invite someone who won't let you slack.</p>
-            <a class="btn btn--dark btn--full" href="{% url 'project_create' %}">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-                </svg>
-                Start a project
-            </a>
-        </section>
-    {% endif %}
+                                <div class="roster">
+                                    {% for member in card.progress|slice:":3" %}
+                                        <div class="roster-row member-color--{{ member.color }}">
+                                            {% include "core/_avatar.html" with avatar_user=member.user initial=member.user.first_name|default:member.user.username|slice:":1" color=member.color size=34 only %}
+                                            <div>
+                                                <div class="roster-row__top">
+                                                    <span class="roster-row__name">
+                                                        {{ member.display_name }}
+                                                        {% if not member.is_current_user and member.streak >= 2 %}
+                                                            <span class="roster-row__streak">&#128293; {{ member.streak }}</span>
+                                                        {% endif %}
+                                                    </span>
+                                                    <span class="fraction">
+                                                        {% if member.target %}
+                                                            <b>{{ member.count }}</b>/{{ member.target_count }}
+                                                        {% else %}
+                                                            <b>{{ member.count }}</b>
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
+                                                {% if member.target %}
+                                                    {% if member.use_bar %}
+                                                        <div class="gbar" aria-hidden="true">
+                                                            <span class="gbar__fill" style="width: {{ member.bar_percent }}%;"></span>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="gdot-row" aria-hidden="true">
+                                                            {% for dot in member.dots %}
+                                                                <span class="gdot{% if dot.filled %} gdot--filled{% endif %}{% if dot.warn %} gdot--warn{% endif %}"></span>
+                                                            {% endfor %}
+                                                            {% if member.overflow %}
+                                                                <span class="gdot-overflow">+{{ member.overflow }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                    {% if card.progress|length > 3 %}
+                                        <p class="project-card__meta">+{{ card.progress|length|add:"-3" }} more</p>
+                                    {% endif %}
+                                </div>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <a class="btn btn--dark btn--full" href="{% url 'project_create' %}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                    </svg>
+                    Start a project
+                </a>
+            {% else %}
+                <section class="empty-state">
+                    <h2 class="empty-state__title">Nobody's watching yet.</h2>
+                    <p class="empty-state__copy">Start a project and invite someone who won't let you slack.</p>
+                    <a class="btn btn--dark btn--full" href="{% url 'project_create' %}">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                        </svg>
+                        Start a project
+                    </a>
+                </section>
+            {% endif %}
+        </div>
+    </div>
 
     <section
         class="card push-card"

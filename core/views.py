@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Count, Max
+from django.db.models import Count, Max, Sum
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -122,6 +122,7 @@ def home(request):
             "display_name": request.user.first_name or request.user.username,
             "summary_line": _summary_line(partner_count),
             "project_cards": project_cards,
+            "live_version": _home_live_version(request.user),
             "vapid_public_key": settings.VAPID_PUBLIC_KEY,
         },
     )
@@ -356,6 +357,12 @@ def project_delete(request, pk):
 def project_version(request, pk):
     project = _member_project_or_404(pk, request.user)
     return JsonResponse({"version": _project_live_version(project)})
+
+
+@login_required
+@never_cache
+def home_version(request):
+    return JsonResponse({"version": _home_live_version(request.user)})
 
 
 @login_required
@@ -609,6 +616,61 @@ def _project_live_version(project):
             _version_timestamp(nudge_stats["max_created"]),
             str(reaction_stats["count"]),
             _version_timestamp(reaction_stats["max_created"]),
+        ]
+    )
+
+
+def _home_live_version(user):
+    project_ids = list(
+        Project.objects.filter(members=user)
+        .order_by("pk")
+        .values_list("pk", flat=True)
+    )
+    project_stats = Project.objects.filter(pk__in=project_ids).aggregate(
+        count=Count("pk"),
+        max_created=Max("created_at"),
+    )
+    membership_stats = Membership.objects.filter(project_id__in=project_ids).aggregate(
+        count=Count("pk"),
+        max_joined=Max("joined_at"),
+    )
+    event_stats = EventLog.objects.filter(activity__project_id__in=project_ids).aggregate(
+        count=Count("pk"),
+        max_created=Max("created_at"),
+    )
+    nudge_stats = Nudge.objects.filter(project_id__in=project_ids).aggregate(
+        count=Count("pk"),
+        max_created=Max("created_at"),
+    )
+    reaction_stats = Reaction.objects.filter(
+        event__activity__project_id__in=project_ids
+    ).aggregate(
+        count=Count("pk"),
+        max_created=Max("created_at"),
+    )
+    target_stats = MemberTarget.objects.filter(
+        membership__project_id__in=project_ids
+    ).aggregate(
+        count=Count("pk"),
+        max_created=Max("created_at"),
+        target_total=Sum("target"),
+    )
+    return ":".join(
+        [
+            ",".join(str(project_id) for project_id in project_ids),
+            str(project_stats["count"]),
+            _version_timestamp(project_stats["max_created"]),
+            str(membership_stats["count"]),
+            _version_timestamp(membership_stats["max_joined"]),
+            str(event_stats["count"]),
+            _version_timestamp(event_stats["max_created"]),
+            str(nudge_stats["count"]),
+            _version_timestamp(nudge_stats["max_created"]),
+            str(reaction_stats["count"]),
+            _version_timestamp(reaction_stats["max_created"]),
+            str(target_stats["count"]),
+            _version_timestamp(target_stats["max_created"]),
+            str(target_stats["target_total"] or 0),
         ]
     )
 

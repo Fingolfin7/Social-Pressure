@@ -704,6 +704,13 @@ class ProjectFlowTests(TestCase):
         self.assertNotContains(response, "data-push-banner")
         self.assertContains(response, "core/js/push.js")
 
+    def test_home_includes_live_sync_attributes(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "data-live-root")
+        self.assertContains(response, 'data-live="projects"')
+        self.assertContains(response, f'data-live-url="{reverse("home_version")}"')
+
     def test_base_topbar_avatar_links_to_profile_and_uses_username_before_email(self):
         User = get_user_model()
         avatar_user = User.objects.create_user(
@@ -753,6 +760,66 @@ class ProjectFlowTests(TestCase):
         response = self.client.get(reverse("project_version", kwargs={"pk": project.pk}))
 
         self.assertEqual(response.status_code, 404)
+
+    def test_home_version_returns_version_for_logged_in_user(self):
+        response = self.client.get(reverse("home_version"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.json()["version"], str)
+
+    def test_home_version_anonymous_redirects(self):
+        self.client.logout()
+
+        response = self.client.get(reverse("home_version"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('login')}?next={reverse('home_version')}",
+            fetch_redirect_response=False,
+        )
+
+    def test_home_version_changes_when_partner_logs_shared_project_event(self):
+        project, activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        version_url = reverse("home_version")
+        initial_version = self.client.get(version_url).json()["version"]
+
+        EventLog.objects.create(activity=activity, user=self.partner)
+
+        self.assertNotEqual(self.client.get(version_url).json()["version"], initial_version)
+
+    def test_home_version_changes_when_user_project_is_deleted(self):
+        project, _activity, _membership = self.make_project()
+        version_url = reverse("home_version")
+        initial_version = self.client.get(version_url).json()["version"]
+
+        project.delete()
+
+        self.assertNotEqual(self.client.get(version_url).json()["version"], initial_version)
+
+    def test_home_version_changes_when_member_joins(self):
+        project, _activity, _membership = self.make_project()
+        version_url = reverse("home_version")
+        initial_version = self.client.get(version_url).json()["version"]
+
+        Membership.objects.create(project=project, user=self.partner)
+
+        self.assertNotEqual(self.client.get(version_url).json()["version"], initial_version)
+
+    def test_home_version_changes_when_member_target_changes(self):
+        project, activity, membership = self.make_project()
+        target = MemberTarget.objects.create(
+            membership=membership,
+            activity=activity,
+            target=3,
+        )
+        version_url = reverse("home_version")
+        initial_version = self.client.get(version_url).json()["version"]
+
+        target.target = 4
+        target.save(update_fields=["target"])
+
+        self.assertNotEqual(self.client.get(version_url).json()["version"], initial_version)
 
     @patch("core.views.send_push_to_user", return_value=1)
     def test_event_log_post_creates_event_pushes_partners_and_redirects(self, send_push_to_user):
