@@ -559,11 +559,10 @@ def _validate_project_create(values):
 
 def _create_recap(values):
     cadence = CADENCE_NOUNS.get(values.get("cadence"), "week")
-    unit = values.get("unit") or "sessions"
-    activity = values.get("activity") or "sessions"
+    unit = values.get("unit") or "session"
     return {
         "unit": _plural_unit(unit),
-        "activity": activity.lower(),
+        "one": unit.lower(),
         "cadence": cadence,
     }
 

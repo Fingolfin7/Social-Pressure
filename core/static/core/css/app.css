@@ -1074,6 +1074,7 @@ body {
   color: var(--card);
   font-size: 15px;
   font-weight: 700;
+  text-decoration: none;
   transition: transform 120ms ease;
 }
 
