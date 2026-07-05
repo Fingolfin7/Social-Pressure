@@ -991,6 +991,8 @@ body {
 .reaction-picker {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
+  box-sizing: border-box;
   gap: 10px;
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -999,7 +1001,16 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-.reaction-picker__option {
+.reaction-picker.is-expanded {
+  width: 100%;
+  max-height: 200px;
+  align-content: flex-start;
+  flex-wrap: wrap;
+  overflow-y: auto;
+}
+
+.reaction-picker__option,
+.reaction-picker__more {
   display: inline-flex;
   width: 28px;
   height: 28px;
@@ -1010,7 +1021,14 @@ body {
   line-height: 1;
 }
 
-.reaction-picker__option:hover {
+.reaction-picker__more {
+  border: 1px dashed var(--line);
+  color: var(--ink-2);
+  font-weight: 700;
+}
+
+.reaction-picker__option:hover,
+.reaction-picker__more:hover {
   background: var(--cream-2);
 }
 
@@ -1049,15 +1067,10 @@ body {
   height: 20px;
 }
 
-.nudge-btn:disabled,
-.nudge-btn.is-disabled {
+.nudge-btn:disabled {
   opacity: .45;
   pointer-events: none;
   color: var(--ink-2);
-}
-
-.nudge-meta {
-  margin-top: -8px;
 }
 
 .log-action,

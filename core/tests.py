@@ -20,6 +20,7 @@ from .models import (
     Reaction,
 )
 from .utils import get_period_bounds
+from .views import ALLOWED_REACTIONS
 
 
 class CoreModelTests(TestCase):
@@ -210,6 +211,35 @@ class ProjectFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Choose the date you'll keep going until.")
         self.assertFalse(Project.objects.filter(name="Writing Club").exists())
+
+    def test_create_recap_uses_activity_unit_and_cadence(self):
+        response = self.client.get(reverse("project_create"))
+        content = response.content.decode()
+
+        self.assertIn("<span data-recap-activity>sessions</span>", content)
+        self.assertIn("<span data-recap-unit>session</span>", content)
+        self.assertIn("<span data-recap-cadence>week</span>", content)
+
+    def test_create_post_rerender_recap_uses_posted_values_and_valid_until_date(self):
+        response = self.client.post(
+            reverse("project_create"),
+            {
+                "template": "custom",
+                "name": "",
+                "activity": "Features",
+                "unit": "feature",
+                "cadence": "daily",
+                "duration": "until",
+                "end_date": "2099-09-30",
+            },
+        )
+        content = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<span data-recap-activity>features</span>", content)
+        self.assertIn("<span data-recap-unit>feature</span>", content)
+        self.assertIn("<span data-recap-cadence>day</span>", content)
+        self.assertContains(response, "until Sep 30, 2099")
 
     def test_target_post_creates_member_target_and_clamps_input(self):
         project, activity, membership = self.make_project()
@@ -678,18 +708,35 @@ class ProjectFlowTests(TestCase):
         self.assertFalse(Reaction.objects.filter(event=event, user=self.user, emoji="👏").exists())
         self.assertContains(remove_response, 'data-reaction-add')
 
+    def test_event_react_accepts_expanded_emoji(self):
+        project, activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        event = EventLog.objects.create(activity=activity, user=self.partner)
+
+        response = self.client.post(
+            reverse("event_react", kwargs={"event_pk": event.pk}),
+            data=json.dumps({"emoji": "👀"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Reaction.objects.filter(event=event, user=self.user, emoji="👀").exists())
+
     def test_event_react_rejects_invalid_emoji(self):
         project, activity, _membership = self.make_project()
         event = EventLog.objects.create(activity=activity, user=self.user)
 
         response = self.client.post(
             reverse("event_react", kwargs={"event_pk": event.pk}),
-            data=json.dumps({"emoji": "🚫"}),
+            data=json.dumps({"emoji": "🦄"}),
             content_type="application/json",
         )
 
         self.assertEqual(response.status_code, 400)
         self.assertFalse(Reaction.objects.exists())
+
+    def test_allowed_reactions_fit_database_field(self):
+        self.assertTrue(all(len(emoji) <= 8 for emoji in ALLOWED_REACTIONS))
 
     def test_event_react_non_member_gets_404(self):
         project, activity, _membership = self.make_project()
@@ -744,7 +791,7 @@ class ProjectFlowTests(TestCase):
         self.assertIn(reverse("project_detail", kwargs={"pk": project.pk}), payload["url"])
 
     @patch("core.views.send_push_to_user", return_value=1)
-    def test_project_nudge_second_post_same_day_returns_429(self, send_push_to_user):
+    def test_project_nudge_twice_same_day_creates_rows_each_time(self, send_push_to_user):
         project, _activity, _membership = self.make_project()
         Membership.objects.create(project=project, user=self.partner)
         url = reverse("project_nudge", kwargs={"pk": project.pk})
@@ -753,34 +800,13 @@ class ProjectFlowTests(TestCase):
         second_response = self.client.post(url, data=json.dumps({}), content_type="application/json")
 
         self.assertEqual(first_response.status_code, 200)
-        self.assertEqual(second_response.status_code, 429)
-        self.assertEqual(second_response.json()["error"], "You've already nudged today.")
-        self.assertEqual(Nudge.objects.filter(project=project, from_user=self.user).count(), 1)
-        send_push_to_user.assert_called_once()
-
-    @patch("core.views.send_push_to_user", return_value=1)
-    def test_project_nudge_yesterday_does_not_block_today(self, send_push_to_user):
-        project, _activity, _membership = self.make_project()
-        Membership.objects.create(project=project, user=self.partner)
-        yesterday = Nudge.objects.create(
-            project=project,
-            from_user=self.user,
-            to_user=self.partner,
-        )
-        Nudge.objects.filter(pk=yesterday.pk).update(created_at=timezone.now() - timedelta(days=1))
-
-        response = self.client.post(
-            reverse("project_nudge", kwargs={"pk": project.pk}),
-            data=json.dumps({}),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["sent"], 1)
+        self.assertEqual(first_response.json(), {"ok": True, "sent": 1})
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(second_response.json(), {"ok": True, "sent": 1})
         self.assertEqual(Nudge.objects.filter(project=project, from_user=self.user).count(), 2)
-        send_push_to_user.assert_called_once()
+        self.assertEqual(send_push_to_user.call_count, 2)
 
-    def test_project_detail_renders_nudge_button_enabled_disabled_and_absent(self):
+    def test_project_detail_renders_nudge_button_enabled_and_absent(self):
         solo_project, _solo_activity, _solo_membership = self.make_project("Solo")
         solo_response = self.client.get(reverse("project_detail", kwargs={"pk": solo_project.pk}))
         self.assertNotContains(solo_response, 'data-nudge')
@@ -793,13 +819,11 @@ class ProjectFlowTests(TestCase):
         self.assertContains(enabled_response, 'data-nudge')
         self.assertContains(enabled_response, f'data-nudge-url="{nudge_url}"')
         self.assertContains(enabled_response, 'aria-label="Nudge Daniel"')
-        self.assertNotContains(enabled_response, "You can nudge again tomorrow.")
 
         Nudge.objects.create(project=project, from_user=self.user, to_user=self.partner)
-        disabled_response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
-        self.assertContains(disabled_response, 'class="nudge-btn is-disabled"')
-        self.assertContains(disabled_response, 'disabled')
-        self.assertContains(disabled_response, "You can nudge again tomorrow.")
+        still_enabled_response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+        self.assertContains(still_enabled_response, 'class="nudge-btn"')
+        self.assertNotContains(still_enabled_response, "is-disabled")
 
     def test_project_nudge_non_member_gets_404(self):
         project, _activity, _membership = self.make_project()

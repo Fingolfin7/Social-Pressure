@@ -115,10 +115,6 @@
             {{ feed_title }}<span class="section-title__meta"> · {{ feed_checkin_label }}</span>
         </h2>
 
-        {% if has_partners and not can_nudge %}
-            <p class="meta nudge-meta">You can nudge again tomorrow.</p>
-        {% endif %}
-
         {% if feed_empty %}
             <p class="screen-subtitle feed-empty">No check-ins yet. First one sets the tone.</p>
         {% else %}
@@ -165,7 +161,7 @@
 
     <div class="bottom-bar">
         {% if has_partners %}
-            <button class="nudge-btn{% if not can_nudge %} is-disabled{% endif %}" type="button" data-nudge data-nudge-url="{% url 'project_nudge' project.pk %}" aria-label="{{ nudge_label }}"{% if not can_nudge %} disabled{% endif %}>
+            <button class="nudge-btn" type="button" data-nudge data-nudge-url="{% url 'project_nudge' project.pk %}" aria-label="{{ nudge_label }}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M15 17H9m9-2V11a6 6 0 0 0-12 0v4l-2 2h16l-2-2Zm-4 4a2 2 0 0 1-4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -179,4 +175,8 @@
         </a>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{{ allowed_reactions|json_script:"allowed-reactions" }}
 {% endblock %}

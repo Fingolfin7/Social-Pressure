@@ -51,7 +51,54 @@ CADENCE_DONE_COPY = {
     Activity.Cadence.MONTHLY: "this month",
 }
 
-ALLOWED_REACTIONS = {"👏", "🔥", "💪", "🎉", "❤️", "😅"}
+ALLOWED_REACTIONS = (
+    "👏",
+    "🔥",
+    "💪",
+    "🎉",
+    "❤️",
+    "😅",
+    "😂",
+    "🤣",
+    "😭",
+    "😮",
+    "😱",
+    "🤯",
+    "😎",
+    "🤩",
+    "🥳",
+    "🙌",
+    "👍",
+    "👎",
+    "👊",
+    "🙏",
+    "💯",
+    "⚡",
+    "✨",
+    "🌟",
+    "🏆",
+    "🥇",
+    "🎯",
+    "🚀",
+    "🍻",
+    "😤",
+    "😴",
+    "🙃",
+    "😉",
+    "😇",
+    "🤗",
+    "🤝",
+    "🫡",
+    "😬",
+    "🥶",
+    "🤌",
+    "👀",
+    "💀",
+    "🎊",
+    "🧠",
+    "🦾",
+    "❤️‍🔥",
+)
 
 
 @login_required
@@ -218,8 +265,6 @@ def project_detail(request, pk):
         .select_related("user")
         .order_by("joined_at", "pk")
     )
-    nudged_today = _nudged_recipient_ids_today(project, request.user)
-    can_nudge = any(partner.user_id not in nudged_today for partner in partners)
     join_path = reverse("project_join", kwargs={"token": project.invite_token})
     return render(
         request,
@@ -239,8 +284,8 @@ def project_detail(request, pk):
             "missing_target": missing_target,
             "solo_project": len(progress) == 1,
             "has_partners": bool(partners),
-            "can_nudge": can_nudge,
             "nudge_label": _nudge_label(partners),
+            "allowed_reactions": ALLOWED_REACTIONS,
             "invite_url": request.build_absolute_uri(join_path),
             "unit_plural": _plural_unit(activity.unit),
             "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
@@ -417,12 +462,9 @@ def project_nudge(request, pk):
         .select_related("user")
         .order_by("joined_at", "pk")
     )
-    nudged_today = _nudged_recipient_ids_today(project, request.user)
     created = []
     with transaction.atomic():
         for membership in recipients:
-            if membership.user_id in nudged_today:
-                continue
             created.append(
                 Nudge.objects.create(
                     project=project,
@@ -430,9 +472,6 @@ def project_nudge(request, pk):
                     to_user=membership.user,
                 )
             )
-
-    if not created:
-        return json_error("You've already nudged today.", status=429)
 
     detail_url = request.build_absolute_uri(reverse("project_detail", kwargs={"pk": project.pk}))
     nudger_name = request.user.first_name or request.user.username
@@ -559,11 +598,16 @@ def _validate_project_create(values):
 
 def _create_recap(values):
     cadence = CADENCE_NOUNS.get(values.get("cadence"), "week")
+    activity = values.get("activity") or "sessions"
     unit = values.get("unit") or "session"
+    duration = "for as long as you both keep it up"
+    if values.get("duration") == "until" and values.get("end_date_obj"):
+        duration = f"until {date_format(values['end_date_obj'], 'M j, Y')}"
     return {
-        "unit": _plural_unit(unit),
-        "one": unit.lower(),
+        "activity": activity.lower(),
+        "unit": unit.lower(),
         "cadence": cadence,
+        "duration": duration,
     }
 
 
@@ -793,25 +837,6 @@ def _nudge_label(partners):
         user = partners[0].user
         return f"Nudge {user.first_name or user.username}"
     return "Nudge partners"
-
-
-def _local_day_bounds():
-    today = timezone.localdate()
-    current_timezone = timezone.get_current_timezone()
-    start = timezone.make_aware(datetime.combine(today, datetime.min.time()), current_timezone)
-    return start, start + timedelta(days=1)
-
-
-def _nudged_recipient_ids_today(project, user):
-    start, end = _local_day_bounds()
-    return set(
-        Nudge.objects.filter(
-            project=project,
-            from_user=user,
-            created_at__gte=start,
-            created_at__lt=end,
-        ).values_list("to_user_id", flat=True)
-    )
 
 
 def _progress_with_display(progress, activity):

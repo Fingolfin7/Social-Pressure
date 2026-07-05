@@ -59,6 +59,19 @@
 
   let openPicker = null;
 
+  function allowedReactions() {
+    const node = document.getElementById("allowed-reactions");
+    if (!node) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(node.textContent);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_error) {
+      return [];
+    }
+  }
+
   function closePicker() {
     if (!openPicker) {
       return;
@@ -67,21 +80,41 @@
     openPicker = null;
   }
 
+  function appendReactionOption(picker, emoji) {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "reaction-picker__option";
+    option.textContent = emoji;
+    option.setAttribute("aria-label", `React with ${emoji}`);
+    option.dataset.emoji = emoji;
+    picker.append(option);
+  }
+
+  function renderPickerOptions(picker, expanded) {
+    picker.textContent = "";
+    picker.classList.toggle("is-expanded", expanded);
+    const visible = expanded ? picker.reactions : picker.reactions.slice(0, 6);
+
+    visible.forEach((emoji) => appendReactionOption(picker, emoji));
+
+    if (!expanded && picker.reactions.length > visible.length) {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "reaction-picker__more";
+      more.textContent = "+";
+      more.setAttribute("aria-label", "More reactions");
+      more.dataset.reactionMore = "";
+      picker.append(more);
+    }
+  }
+
   function pickerMarkup(sourceButton) {
     const picker = document.createElement("div");
     picker.className = "reaction-picker";
     picker.dataset.reactionPicker = "";
     picker.sourceButton = sourceButton;
-
-    ["👏", "🔥", "💪", "🎉", "❤️", "😅"].forEach((emoji) => {
-      const option = document.createElement("button");
-      option.type = "button";
-      option.className = "reaction-picker__option";
-      option.textContent = emoji;
-      option.setAttribute("aria-label", `React with ${emoji}`);
-      option.dataset.emoji = emoji;
-      picker.append(option);
-    });
+    picker.reactions = allowedReactions();
+    renderPickerOptions(picker, false);
 
     return picker;
   }
@@ -123,8 +156,16 @@
   function bindReactions() {
     document.addEventListener("click", (event) => {
       const addButton = event.target.closest("[data-reaction-add]");
+      const moreButton = event.target.closest("[data-reaction-more]");
       const pickerOption = event.target.closest("[data-reaction-picker] [data-emoji]");
       const toggleButton = event.target.closest("[data-reaction-row] .reaction-pill[data-emoji]");
+
+      if (moreButton && openPicker && openPicker.contains(moreButton)) {
+        event.preventDefault();
+        event.stopPropagation();
+        renderPickerOptions(openPicker, true);
+        return;
+      }
 
       if (pickerOption && openPicker) {
         event.preventDefault();
@@ -261,8 +302,9 @@
             button.innerHTML = checkIcon();
             window.setTimeout(() => {
               button.innerHTML = original;
-              button.classList.add("is-disabled");
-              button.setAttribute("aria-disabled", "true");
+              button.disabled = false;
+              button.classList.remove("is-disabled");
+              button.removeAttribute("aria-disabled");
             }, 1500);
           })
           .catch(() => {
@@ -305,6 +347,45 @@
   }
 
   function bindCreateHelpers() {
+    const recapActivity = document.querySelector("[data-recap-activity]");
+    const recapUnit = document.querySelector("[data-recap-unit]");
+    const recapCadence = document.querySelector("[data-recap-cadence]");
+    const activityField = document.querySelector("[data-project-activity], input[name='activity'], input[name='activity_name'], #id_activity");
+    const unitField = document.querySelector("[data-project-unit], input[name='unit'], #id_unit");
+    const cadenceNouns = {
+      daily: "day",
+      weekly: "week",
+      monthly: "month",
+    };
+    const cleanRecapValue = (value, fallback) => {
+      const next = (value || "").trim().toLowerCase();
+      return next || fallback;
+    };
+    const syncRecap = () => {
+      if (recapActivity && activityField) {
+        recapActivity.textContent = cleanRecapValue(activityField.value, "sessions");
+      }
+      if (recapUnit && unitField) {
+        recapUnit.textContent = cleanRecapValue(unitField.value, "session");
+      }
+      if (recapCadence) {
+        const selectedCadence = document.querySelector("input[name='cadence']:checked, [data-project-cadence], select[name='cadence'], #id_cadence");
+        const cadence = selectedCadence ? selectedCadence.value : "weekly";
+        recapCadence.textContent = cadenceNouns[cadence] || "week";
+      }
+    };
+
+    [activityField, unitField].forEach((field) => {
+      if (!field) {
+        return;
+      }
+      field.addEventListener("input", syncRecap);
+      field.addEventListener("change", syncRecap);
+    });
+    document.querySelectorAll("input[name='cadence'], [data-project-cadence], select[name='cadence'], #id_cadence").forEach((input) => {
+      input.addEventListener("change", syncRecap);
+    });
+
     document.querySelectorAll("input[type='radio'][data-name][data-activity][data-unit][data-cadence]").forEach((input) => {
       input.addEventListener("change", () => {
         if (input.checked) {
@@ -317,6 +398,7 @@
     if (checkedTemplate) {
       applyTemplate(checkedTemplate);
     }
+    syncRecap();
 
     const reveal = document.querySelector("[data-date-reveal]");
     if (reveal) {
