@@ -1,4 +1,9 @@
 Django~=5.2.0
+dj-database-url
+django-storages[s3]
+gunicorn
+psycopg[binary]
 pywebpush
 python-dotenv
 Pillow
+whitenoise

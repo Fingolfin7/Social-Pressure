@@ -567,6 +567,10 @@ def offline(request):
     return render(request, "core/offline.html")
 
 
+def healthz(request):
+    return JsonResponse({"ok": True})
+
+
 def _member_project_or_404(pk, user):
     return get_object_or_404(
         Project.objects.prefetch_related("activities", "memberships__user"),

@@ -697,12 +697,12 @@ class ProjectFlowTests(TestCase):
         self.assertContains(response, 'data-vapid-public-key="test-public-key"')
         self.assertContains(response, "Get a ping when your partners check in.")
 
-    def test_home_includes_push_card_and_base_push_script(self):
+    def test_home_includes_push_banner_and_base_push_script(self):
         response = self.client.get(reverse("home"))
 
-        self.assertContains(response, "data-push-controls")
-        self.assertNotContains(response, "data-push-banner")
-        self.assertContains(response, "core/js/push.js")
+        self.assertContains(response, "data-push-banner")
+        self.assertNotContains(response, "data-push-controls")
+        self.assertContains(response, "core/js/push.")
 
     def test_home_includes_live_sync_attributes(self):
         response = self.client.get(reverse("home"))

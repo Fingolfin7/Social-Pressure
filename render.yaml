@@ -1,0 +1,41 @@
+envVarGroups:
+  - name: social-pressure-shared
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: USE_S3
+        value: "1"
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        value: eu-north-1
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_ADMIN_EMAIL
+        sync: false
+
+services:
+  - type: web
+    name: social-pressure-web
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: bash build.sh
+    startCommand: gunicorn socialpressure.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120
+    healthCheckPath: /healthz/
+    envVars:
+      - fromGroup: social-pressure-shared
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: SECURE_SSL_REDIRECT
+        value: "1"
+      - key: PYTHON_VERSION
+        value: 3.12.10
