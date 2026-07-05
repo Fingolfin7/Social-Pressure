@@ -5,6 +5,9 @@ from django.urls import include, path
 
 from core import pwa
 from core.views import (
+    event_log,
+    event_logged,
+    event_undo,
     home,
     offline,
     project_create,
@@ -25,6 +28,9 @@ urlpatterns = [
     path("projects/new/", project_create, name="project_create"),
     path("projects/<int:pk>/", project_detail, name="project_detail"),
     path("projects/<int:pk>/target/", project_target, name="project_target"),
+    path("projects/<int:pk>/log/", event_log, name="event_log"),
+    path("projects/<int:pk>/logged/<int:event_pk>/", event_logged, name="event_logged"),
+    path("projects/<int:pk>/undo/<int:event_pk>/", event_undo, name="event_undo"),
     path("push/subscribe/", push_subscribe, name="push_subscribe"),
     path("push/unsubscribe/", push_unsubscribe, name="push_unsubscribe"),
     path("push/test/", push_test, name="push_test"),

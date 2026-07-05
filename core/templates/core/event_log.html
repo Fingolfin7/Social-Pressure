@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Log it - Social Pressure{% endblock %}
+
+{% block topbar %}
+<header class="topbar topbar--interior">
+    <a class="icon-btn" href="{% url 'project_detail' project.pk %}" aria-label="Back to project">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+    </a>
+    <div class="topbar__context">{{ project.name }}</div>
+    <span aria-hidden="true"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="screen screen--log">
+    <div class="log-hero">
+        <span class="avatar avatar--56 avatar--clay">{{ current_initial }}</span>
+        <div class="stack">
+            <h1 class="screen-title log-title">Did you make it?</h1>
+            <p class="screen-subtitle log-support">
+                {{ support.opening }} You'll be at <b>{{ support.count }}</b>{{ support.suffix }}
+            </p>
+        </div>
+    </div>
+
+    <form class="log-form" method="post" data-log-form>
+        {% csrf_token %}
+        <div class="log-tap">
+            <button class="log-circle" type="submit" aria-label="Yes, I did">
+                <span class="log-circle__plus" aria-hidden="true">+</span>
+                <span class="log-circle__label" data-log-label>Yes, I did</span>
+            </button>
+            <p class="screen-subtitle log-hint">One tap logs it. That's the whole thing.</p>
+        </div>
+        <input class="input" type="text" name="note" maxlength="280" placeholder="Say something? (optional)">
+    </form>
+</section>
+{% endblock %}

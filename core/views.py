@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, JsonResponse
@@ -13,7 +14,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 from .models import Activity, EventLog, MemberTarget, Membership, Nudge, Project, PushSubscription
-from .progress import home_summary, project_member_progress
+from .progress import home_summary, member_streak, period_counts, project_member_progress
 from .push import send_push_to_user
 from .utils import get_period_bounds
 
@@ -234,6 +235,123 @@ def project_detail(request, pk):
     )
 
 
+@login_required
+def event_log(request, pk):
+    project = _member_project_or_404(pk, request.user)
+    activity = _first_activity_or_404(project)
+    membership = get_object_or_404(Membership, project=project, user=request.user)
+    target = MemberTarget.objects.filter(membership=membership, activity=activity).first()
+    period_start, period_end = get_period_bounds(activity.cadence)
+    current_count = period_counts(activity, period_start, period_end).get(request.user.id, 0)
+    new_count = current_count + 1
+    partners = list(
+        project.memberships.exclude(user=request.user)
+        .select_related("user")
+        .order_by("joined_at", "pk")
+    )
+
+    if request.method == "POST":
+        logged_at = timezone.now()
+        event = EventLog.objects.create(
+            activity=activity,
+            user=request.user,
+            logged_at=logged_at,
+            note=request.POST.get("note", "")[:280].strip(),
+        )
+        period_start, period_end = get_period_bounds(activity.cadence, logged_at)
+        new_count = period_counts(activity, period_start, period_end).get(request.user.id, 0)
+        partner_users = [partner.user for partner in partners]
+        partners_with_subscriptions = (
+            PushSubscription.objects.filter(user__in=partner_users)
+            .values("user_id")
+            .distinct()
+            .count()
+        )
+        sent = 0
+        try:
+            detail_url = request.build_absolute_uri(
+                reverse("project_detail", kwargs={"pk": project.pk})
+            )
+            logger_name = request.user.first_name or request.user.username
+            cadence_noun = CADENCE_NOUNS.get(activity.cadence, activity.cadence)
+            count_copy = str(new_count)
+            if target:
+                count_copy = f"{new_count}/{target.target}"
+            body = (
+                f"{logger_name} logged a {activity.unit} "
+                f"({count_copy} this {cadence_noun})"
+            )
+            payload = {"title": project.name, "body": body, "url": detail_url}
+            for partner in partner_users:
+                sent += send_push_to_user(partner, payload)
+        except Exception:
+            pass
+
+        logged_url = reverse(
+            "event_logged",
+            kwargs={"pk": project.pk, "event_pk": event.pk},
+        )
+        return redirect(f"{logged_url}?partners={partners_with_subscriptions}")
+
+    return render(
+        request,
+        "core/event_log.html",
+        {
+            "project": project,
+            "activity": activity,
+            "support": _log_support_copy(partners, target, new_count, activity.cadence),
+            "current_initial": (request.user.first_name or request.user.username)[:1],
+        },
+    )
+
+
+@login_required
+def event_logged(request, pk, event_pk):
+    project = _member_project_or_404(pk, request.user)
+    activity = _first_activity_or_404(project)
+    event = get_object_or_404(
+        EventLog.objects.select_related("activity", "user"),
+        pk=event_pk,
+        user=request.user,
+        activity=activity,
+    )
+    membership = get_object_or_404(Membership, project=project, user=request.user)
+    target = MemberTarget.objects.filter(membership=membership, activity=activity).first()
+    period_start, period_end = get_period_bounds(activity.cadence, event.logged_at)
+    count = period_counts(activity, period_start, period_end).get(request.user.id, 0)
+    streak = member_streak(membership, activity, event.logged_at)
+    partner_count = _positive_int(request.GET.get("partners"))
+    receipt = _push_receipt(project, request.user, partner_count)
+
+    return render(
+        request,
+        "core/event_logged.html",
+        {
+            "project": project,
+            "activity": activity,
+            "event": event,
+            "body": _logged_body(target, count, activity.cadence, streak),
+            "receipt": receipt,
+        },
+    )
+
+
+@login_required
+@require_POST
+def event_undo(request, pk, event_pk):
+    project = _member_project_or_404(pk, request.user)
+    activity = _first_activity_or_404(project)
+    event = EventLog.objects.filter(pk=event_pk, activity=activity).first()
+
+    if event and event.user_id == request.user.id:
+        if event.created_at >= timezone.now() - timedelta(minutes=2):
+            event.delete()
+        else:
+            messages.info(request, "Too late to undo that one.")
+
+    return redirect("project_detail", pk=project.pk)
+
+
 def offline(request):
     return render(request, "core/offline.html")
 
@@ -363,6 +481,104 @@ def _plural_unit(unit):
     if unit.endswith("s"):
         return unit
     return f"{unit}s"
+
+
+def _positive_int(value):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return max(0, number)
+
+
+def _partner_phrase(partners):
+    if not partners:
+        return ""
+    if len(partners) == 1:
+        user = partners[0].user
+        return user.first_name or user.username
+    return "your partners"
+
+
+def _log_support_copy(partners, target, new_count, cadence):
+    cadence_noun = CADENCE_NOUNS.get(cadence, cadence)
+    if len(partners) == 1:
+        opening = f"Tap once and {_partner_phrase(partners)} finds out right away."
+    elif partners:
+        opening = "Tap once and your partners find out right away."
+    else:
+        opening = "Tap once and it's on the record."
+
+    if not target:
+        return {
+            "opening": opening,
+            "count": str(new_count),
+            "suffix": f" this {cadence_noun}.",
+        }
+
+    count = f"{new_count} of {target.target}"
+    if new_count >= target.target:
+        suffix = f" — your whole {cadence_noun}, done."
+    else:
+        remaining = target.target - new_count
+        remaining_copy = "one more" if remaining == 1 else f"{remaining} more"
+        suffix = f" — {remaining_copy} after this."
+    return {"opening": opening, "count": count, "suffix": suffix}
+
+
+def _logged_body(target, count, cadence, streak):
+    period_copy = f"this {CADENCE_NOUNS.get(cadence, cadence)}"
+    if not target:
+        return {
+            "count": str(count),
+            "suffix": f" {period_copy}.",
+            "streak": "",
+        }
+
+    count_copy = f"{count} of {target.target}"
+    if count >= target.target:
+        suffix = f" {period_copy} — you hit it."
+        if streak >= 1:
+            suffix += " Your streak just ticked up to "
+        return {
+            "count": count_copy,
+            "suffix": suffix,
+            "streak": _streak_count_copy(cadence, streak) if streak >= 1 else "",
+        }
+
+    remaining = target.target - count
+    remaining_copy = "one" if remaining == 1 else str(remaining)
+    return {
+        "count": count_copy,
+        "suffix": f" {period_copy} — {remaining_copy} to go.",
+        "streak": "",
+    }
+
+
+def _streak_count_copy(cadence, streak):
+    if cadence == Activity.Cadence.DAILY:
+        return f"Day {streak}"
+    noun = CADENCE_NOUNS.get(cadence, "week")
+    if streak != 1:
+        noun = f"{noun}s"
+    return f"{streak} {noun}"
+
+
+def _push_receipt(project, current_user, partner_count):
+    if partner_count < 1:
+        return None
+
+    partners = list(
+        project.memberships.exclude(user=current_user)
+        .filter(user__push_subscriptions__isnull=False)
+        .select_related("user")
+        .distinct()
+        .order_by("joined_at", "pk")
+    )
+    if partner_count == 1 and partners:
+        name = partners[0].user.first_name or partners[0].user.username
+        return {"initial": name[:1], "text": f"{name} just got the notification"}
+    return {"initial": "Y", "text": "Your partners just got the notification"}
 
 
 def _project_description(project, activity):

@@ -348,6 +348,160 @@ class ProjectFlowTests(TestCase):
         self.assertContains(response, join_path)
         self.assertContains(response, 'data-copy-text="http://testserver')
 
+    def test_project_detail_includes_bottom_bar_log_link(self):
+        project, activity, _membership = self.make_project()
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertContains(response, 'class="bottom-bar"')
+        self.assertContains(response, reverse("event_log", kwargs={"pk": project.pk}))
+        self.assertContains(response, f"Log a {activity.unit}")
+
+    @patch("core.views.send_push_to_user", return_value=1)
+    def test_event_log_post_creates_event_pushes_partners_and_redirects(self, send_push_to_user):
+        project, activity, membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        MemberTarget.objects.create(membership=membership, activity=activity, target=3)
+        PushSubscription.objects.create(
+            user=self.user,
+            endpoint="https://push.example/logger",
+            p256dh="public-key",
+            auth="auth-secret",
+        )
+        PushSubscription.objects.create(
+            user=self.partner,
+            endpoint="https://push.example/partner",
+            p256dh="public-key",
+            auth="auth-secret",
+        )
+
+        response = self.client.post(
+            reverse("event_log", kwargs={"pk": project.pk}),
+            {"note": "Done before work"},
+        )
+
+        event = EventLog.objects.get(activity=activity, user=self.user)
+        self.assertEqual(event.note, "Done before work")
+        self.assertRedirects(
+            response,
+            f"{reverse('event_logged', kwargs={'pk': project.pk, 'event_pk': event.pk})}?partners=1",
+            fetch_redirect_response=False,
+        )
+        send_push_to_user.assert_called_once()
+        push_user, payload = send_push_to_user.call_args.args
+        self.assertEqual(push_user, self.partner)
+        self.assertEqual(payload["title"], project.name)
+        self.assertIn("Henry", payload["body"])
+        self.assertIn("1/3", payload["body"])
+        self.assertIn(reverse("project_detail", kwargs={"pk": project.pk}), payload["url"])
+
+    @patch("core.views.send_push_to_user", side_effect=Exception("push failed"))
+    def test_event_log_push_exception_does_not_break_response(self, send_push_to_user):
+        project, _activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+
+        response = self.client.post(reverse("event_log", kwargs={"pk": project.pk}))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(EventLog.objects.count(), 1)
+        send_push_to_user.assert_called_once()
+
+    def test_event_logged_copy_shows_hit_and_to_go_states(self):
+        hit_project, hit_activity, hit_membership = self.make_project("Hit Project")
+        MemberTarget.objects.create(membership=hit_membership, activity=hit_activity, target=3)
+        start, _end = get_period_bounds(hit_activity.cadence)
+        EventLog.objects.create(activity=hit_activity, user=self.user, logged_at=start + timedelta(hours=9))
+        EventLog.objects.create(activity=hit_activity, user=self.user, logged_at=start + timedelta(hours=10))
+        hit_event = EventLog.objects.create(
+            activity=hit_activity,
+            user=self.user,
+            logged_at=start + timedelta(hours=11),
+        )
+
+        hit_response = self.client.get(
+            reverse("event_logged", kwargs={"pk": hit_project.pk, "event_pk": hit_event.pk})
+        )
+
+        self.assertContains(hit_response, "you hit it")
+        self.assertContains(hit_response, "3 of 3")
+
+        under_project, under_activity, under_membership = self.make_project("Under Project")
+        MemberTarget.objects.create(membership=under_membership, activity=under_activity, target=3)
+        under_start, _under_end = get_period_bounds(under_activity.cadence)
+        EventLog.objects.create(
+            activity=under_activity,
+            user=self.user,
+            logged_at=under_start + timedelta(hours=9),
+        )
+        under_event = EventLog.objects.create(
+            activity=under_activity,
+            user=self.user,
+            logged_at=under_start + timedelta(hours=10),
+        )
+
+        under_response = self.client.get(
+            reverse("event_logged", kwargs={"pk": under_project.pk, "event_pk": under_event.pk})
+        )
+
+        self.assertContains(under_response, "one to go")
+        self.assertContains(under_response, "2 of 3")
+
+    def test_event_undo_within_two_minutes_deletes_and_redirects(self):
+        project, activity, _membership = self.make_project()
+        event = EventLog.objects.create(activity=activity, user=self.user)
+
+        response = self.client.post(
+            reverse("event_undo", kwargs={"pk": project.pk, "event_pk": event.pk})
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("project_detail", kwargs={"pk": project.pk}),
+            fetch_redirect_response=False,
+        )
+        self.assertFalse(EventLog.objects.filter(pk=event.pk).exists())
+
+    def test_event_undo_after_two_minutes_does_not_delete(self):
+        project, activity, _membership = self.make_project()
+        event = EventLog.objects.create(activity=activity, user=self.user)
+        EventLog.objects.filter(pk=event.pk).update(
+            created_at=timezone.now() - timedelta(minutes=3)
+        )
+
+        response = self.client.post(
+            reverse("event_undo", kwargs={"pk": project.pk, "event_pk": event.pk})
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("project_detail", kwargs={"pk": project.pk}),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(EventLog.objects.filter(pk=event.pk).exists())
+
+    def test_non_member_gets_404_on_event_log_get_and_post(self):
+        project, _activity, _membership = self.make_project()
+        self.client.force_login(self.other)
+        url = reverse("event_log", kwargs={"pk": project.pk})
+
+        get_response = self.client.get(url)
+        post_response = self.client.post(url)
+
+        self.assertEqual(get_response.status_code, 404)
+        self.assertEqual(post_response.status_code, 404)
+
+    def test_non_owner_gets_404_on_event_logged(self):
+        project, activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        event = EventLog.objects.create(activity=activity, user=self.user)
+        self.client.force_login(self.partner)
+
+        response = self.client.get(
+            reverse("event_logged", kwargs={"pk": project.pk, "event_pk": event.pk})
+        )
+
+        self.assertEqual(response.status_code, 404)
+
     def test_home_shows_behind_pill_and_orders_behind_project_first(self):
         behind_project, behind_activity, behind_membership = self.make_project("Behind Project")
         current_project, current_activity, current_membership = self.make_project("Current Project")

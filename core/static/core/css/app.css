@@ -415,6 +415,12 @@ body {
   font-size: 18px;
 }
 
+.avatar--56 {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+}
+
 .avatar--64 {
   width: 64px;
   height: 64px;
@@ -1121,6 +1127,95 @@ body {
   margin: 20px -22px -32px;
   padding: 12px 18px calc(16px + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(247,241,231,0), var(--cream) 40%);
+}
+
+.screen--log {
+  min-height: 70vh;
+  align-content: space-between;
+  justify-items: center;
+  text-align: center;
+}
+
+.log-hero {
+  display: grid;
+  max-width: 330px;
+  justify-items: center;
+  gap: var(--space-3);
+}
+
+.log-title {
+  font-size: 23px;
+}
+
+.log-support b {
+  color: var(--clay);
+  font-weight: 800;
+}
+
+.log-form {
+  display: grid;
+  width: 100%;
+  justify-items: center;
+  gap: var(--space-6);
+}
+
+.log-tap {
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+}
+
+.log-hint {
+  font-size: 12.5px;
+}
+
+.logged-screen {
+  justify-items: center;
+  gap: var(--space-5);
+}
+
+.logged-check {
+  display: inline-flex;
+  width: 130px;
+  height: 130px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--sage-soft);
+  color: var(--sage);
+}
+
+.logged-check svg {
+  width: 58px;
+  height: 58px;
+}
+
+.logged-title {
+  font-size: 24px;
+}
+
+.logged-body {
+  max-width: 330px;
+  font-size: 14px;
+}
+
+.logged-body b {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.receipt-pill {
+  gap: 8px;
+  padding: 6px 11px 6px 6px;
+  font-size: 12.5px;
+}
+
+.button-row form {
+  flex: 1 1 150px;
+}
+
+.button-row form .btn {
+  width: 100%;
 }
 
 .form {
