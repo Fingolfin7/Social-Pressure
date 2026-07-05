@@ -1056,6 +1056,10 @@ body {
   color: var(--ink-2);
 }
 
+.nudge-meta {
+  margin-top: -8px;
+}
+
 .log-action,
 .log-btn {
   display: flex;
@@ -1127,6 +1131,10 @@ body {
   margin: 20px -22px -32px;
   padding: 12px 18px calc(16px + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(247,241,231,0), var(--cream) 40%);
+}
+
+.bottom-bar .log-action {
+  flex: 1 1 auto;
 }
 
 .screen--log {

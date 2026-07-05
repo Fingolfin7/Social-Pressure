@@ -1,0 +1,8 @@
+<div class="reaction-row" data-reaction-row data-reaction-url="{% url 'event_react' event_pk %}" aria-label="Reactions">
+    {% for reaction in reactions %}
+        <button class="reaction-pill{% if reaction.mine %} reaction-pill--mine{% endif %}" type="button" data-emoji="{{ reaction.emoji }}" aria-label="Toggle {{ reaction.emoji }} reaction">
+            {{ reaction.emoji }} <span class="reaction-pill__count">{{ reaction.count }}</span>
+        </button>
+    {% endfor %}
+    <button type="button" class="reaction-pill reaction-pill--add" data-reaction-add aria-label="Add reaction">+</button>
+</div>

@@ -14,6 +14,7 @@ from .models import (
     EventLog,
     MemberTarget,
     Membership,
+    Nudge,
     Project,
     PushSubscription,
     Reaction,
@@ -648,6 +649,169 @@ class ProjectFlowTests(TestCase):
         self.assertContains(response, "👏")
         self.assertIn('<span class="reaction-pill__count">2</span>', content)
         self.assertIn("reaction-pill--mine", content)
+
+    def test_event_react_toggles_add_and_remove(self):
+        project, activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        event = EventLog.objects.create(activity=activity, user=self.partner)
+        url = reverse("event_react", kwargs={"event_pk": event.pk})
+
+        add_response = self.client.post(
+            url,
+            data=json.dumps({"emoji": "👏"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(add_response.status_code, 200)
+        self.assertEqual(Reaction.objects.filter(event=event, user=self.user, emoji="👏").count(), 1)
+        self.assertContains(add_response, 'data-reaction-row')
+        self.assertContains(add_response, 'reaction-pill--mine')
+        self.assertContains(add_response, '<span class="reaction-pill__count">1</span>', html=False)
+
+        remove_response = self.client.post(
+            url,
+            data=json.dumps({"emoji": "👏"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(remove_response.status_code, 200)
+        self.assertFalse(Reaction.objects.filter(event=event, user=self.user, emoji="👏").exists())
+        self.assertContains(remove_response, 'data-reaction-add')
+
+    def test_event_react_rejects_invalid_emoji(self):
+        project, activity, _membership = self.make_project()
+        event = EventLog.objects.create(activity=activity, user=self.user)
+
+        response = self.client.post(
+            reverse("event_react", kwargs={"event_pk": event.pk}),
+            data=json.dumps({"emoji": "🚫"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Reaction.objects.exists())
+
+    def test_event_react_non_member_gets_404(self):
+        project, activity, _membership = self.make_project()
+        event = EventLog.objects.create(activity=activity, user=self.user)
+        self.client.force_login(self.other)
+
+        response = self.client.post(
+            reverse("event_react", kwargs={"event_pk": event.pk}),
+            data=json.dumps({"emoji": "👏"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_project_detail_reaction_add_pill_present_without_reactions(self):
+        project, activity, _membership = self.make_project()
+        EventLog.objects.create(activity=activity, user=self.user)
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertContains(response, 'data-reaction-add')
+        self.assertContains(response, reverse("event_react", kwargs={"event_pk": EventLog.objects.get().pk}))
+
+    @patch("core.views.send_push_to_user", return_value=1)
+    def test_project_nudge_creates_one_per_partner_and_pushes_each(self, send_push_to_user):
+        User = get_user_model()
+        second_partner = User.objects.create_user(
+            username="maya",
+            email="maya@example.com",
+            password="testpass123",
+            first_name="Maya",
+        )
+        project, _activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        Membership.objects.create(project=project, user=second_partner)
+
+        response = self.client.post(
+            reverse("project_nudge", kwargs={"pk": project.pk}),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"ok": True, "sent": 2})
+        self.assertEqual(Nudge.objects.filter(project=project, from_user=self.user).count(), 2)
+        self.assertEqual(send_push_to_user.call_count, 2)
+        pushed_users = {call.args[0] for call in send_push_to_user.call_args_list}
+        self.assertEqual(pushed_users, {self.partner, second_partner})
+        _recipient, payload = send_push_to_user.call_args.args
+        self.assertEqual(payload["title"], project.name)
+        self.assertEqual(payload["body"], "Henry nudged you — your turn 👀")
+        self.assertIn(reverse("project_detail", kwargs={"pk": project.pk}), payload["url"])
+
+    @patch("core.views.send_push_to_user", return_value=1)
+    def test_project_nudge_second_post_same_day_returns_429(self, send_push_to_user):
+        project, _activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        url = reverse("project_nudge", kwargs={"pk": project.pk})
+
+        first_response = self.client.post(url, data=json.dumps({}), content_type="application/json")
+        second_response = self.client.post(url, data=json.dumps({}), content_type="application/json")
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 429)
+        self.assertEqual(second_response.json()["error"], "You've already nudged today.")
+        self.assertEqual(Nudge.objects.filter(project=project, from_user=self.user).count(), 1)
+        send_push_to_user.assert_called_once()
+
+    @patch("core.views.send_push_to_user", return_value=1)
+    def test_project_nudge_yesterday_does_not_block_today(self, send_push_to_user):
+        project, _activity, _membership = self.make_project()
+        Membership.objects.create(project=project, user=self.partner)
+        yesterday = Nudge.objects.create(
+            project=project,
+            from_user=self.user,
+            to_user=self.partner,
+        )
+        Nudge.objects.filter(pk=yesterday.pk).update(created_at=timezone.now() - timedelta(days=1))
+
+        response = self.client.post(
+            reverse("project_nudge", kwargs={"pk": project.pk}),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["sent"], 1)
+        self.assertEqual(Nudge.objects.filter(project=project, from_user=self.user).count(), 2)
+        send_push_to_user.assert_called_once()
+
+    def test_project_detail_renders_nudge_button_enabled_disabled_and_absent(self):
+        solo_project, _solo_activity, _solo_membership = self.make_project("Solo")
+        solo_response = self.client.get(reverse("project_detail", kwargs={"pk": solo_project.pk}))
+        self.assertNotContains(solo_response, 'data-nudge')
+
+        project, _activity, _membership = self.make_project("Partners")
+        Membership.objects.create(project=project, user=self.partner)
+        nudge_url = reverse("project_nudge", kwargs={"pk": project.pk})
+
+        enabled_response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+        self.assertContains(enabled_response, 'data-nudge')
+        self.assertContains(enabled_response, f'data-nudge-url="{nudge_url}"')
+        self.assertContains(enabled_response, 'aria-label="Nudge Daniel"')
+        self.assertNotContains(enabled_response, "You can nudge again tomorrow.")
+
+        Nudge.objects.create(project=project, from_user=self.user, to_user=self.partner)
+        disabled_response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+        self.assertContains(disabled_response, 'class="nudge-btn is-disabled"')
+        self.assertContains(disabled_response, 'disabled')
+        self.assertContains(disabled_response, "You can nudge again tomorrow.")
+
+    def test_project_nudge_non_member_gets_404(self):
+        project, _activity, _membership = self.make_project()
+        self.client.force_login(self.other)
+
+        response = self.client.post(
+            reverse("project_nudge", kwargs={"pk": project.pk}),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 404)
 
     def test_project_detail_show_earlier_reveals_previous_period_event(self):
         project, activity, membership = self.make_project()

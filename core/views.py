@@ -5,15 +5,16 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.formats import date_format
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
-from .models import Activity, EventLog, MemberTarget, Membership, Nudge, Project, PushSubscription
+from .models import Activity, EventLog, MemberTarget, Membership, Nudge, Project, PushSubscription, Reaction
 from .progress import home_summary, member_streak, period_counts, project_member_progress
 from .push import send_push_to_user
 from .utils import get_period_bounds
@@ -49,6 +50,8 @@ CADENCE_DONE_COPY = {
     Activity.Cadence.WEEKLY: "this week",
     Activity.Cadence.MONTHLY: "this month",
 }
+
+ALLOWED_REACTIONS = {"👏", "🔥", "💪", "🎉", "❤️", "😅"}
 
 
 @login_required
@@ -210,6 +213,13 @@ def project_detail(request, pk):
         membership__user=request.user,
         activity=activity,
     ).exists()
+    partners = list(
+        project.memberships.exclude(user=request.user)
+        .select_related("user")
+        .order_by("joined_at", "pk")
+    )
+    nudged_today = _nudged_recipient_ids_today(project, request.user)
+    can_nudge = any(partner.user_id not in nudged_today for partner in partners)
     join_path = reverse("project_join", kwargs={"token": project.invite_token})
     return render(
         request,
@@ -228,6 +238,9 @@ def project_detail(request, pk):
             "show_earlier_link": feed["show_earlier_link"],
             "missing_target": missing_target,
             "solo_project": len(progress) == 1,
+            "has_partners": bool(partners),
+            "can_nudge": can_nudge,
+            "nudge_label": _nudge_label(partners),
             "invite_url": request.build_absolute_uri(join_path),
             "unit_plural": _plural_unit(activity.unit),
             "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
@@ -350,6 +363,93 @@ def event_undo(request, pk, event_pk):
             messages.info(request, "Too late to undo that one.")
 
     return redirect("project_detail", pk=project.pk)
+
+
+@login_required
+@require_POST
+def event_react(request, event_pk):
+    data = get_json_body(request)
+    if data is None:
+        return json_error("Invalid JSON.")
+
+    emoji = data.get("emoji")
+    if emoji not in ALLOWED_REACTIONS:
+        return json_error("Choose a reaction.")
+
+    event = get_object_or_404(
+        EventLog.objects.select_related("activity__project").prefetch_related("reactions__user"),
+        pk=event_pk,
+        activity__project__members=request.user,
+    )
+    deleted, _details = Reaction.objects.filter(
+        event=event,
+        user=request.user,
+        emoji=emoji,
+    ).delete()
+    if not deleted:
+        Reaction.objects.get_or_create(event=event, user=request.user, emoji=emoji)
+
+    event = get_object_or_404(
+        EventLog.objects.prefetch_related("reactions__user"),
+        pk=event.pk,
+    )
+    html = render_to_string(
+        "core/_reaction_row.html",
+        {
+            "event_pk": event.pk,
+            "reactions": _event_reactions(event, request.user),
+        },
+        request=request,
+    )
+    return HttpResponse(html, content_type="text/html")
+
+
+@login_required
+@require_POST
+def project_nudge(request, pk):
+    data = get_json_body(request)
+    if data is None:
+        return json_error("Invalid JSON.")
+
+    project = _member_project_or_404(pk, request.user)
+    recipients = list(
+        project.memberships.exclude(user=request.user)
+        .select_related("user")
+        .order_by("joined_at", "pk")
+    )
+    nudged_today = _nudged_recipient_ids_today(project, request.user)
+    created = []
+    with transaction.atomic():
+        for membership in recipients:
+            if membership.user_id in nudged_today:
+                continue
+            created.append(
+                Nudge.objects.create(
+                    project=project,
+                    from_user=request.user,
+                    to_user=membership.user,
+                )
+            )
+
+    if not created:
+        return json_error("You've already nudged today.", status=429)
+
+    detail_url = request.build_absolute_uri(reverse("project_detail", kwargs={"pk": project.pk}))
+    nudger_name = request.user.first_name or request.user.username
+    for nudge in created:
+        try:
+            send_push_to_user(
+                nudge.to_user,
+                {
+                    "title": project.name,
+                    "body": f"{nudger_name} nudged you — your turn 👀",
+                    "url": detail_url,
+                },
+            )
+        except Exception:
+            pass
+
+    return JsonResponse({"ok": True, "sent": len(created)})
 
 
 def offline(request):
@@ -689,6 +789,32 @@ def _checkin_label(count):
     return "1 check-in" if count == 1 else f"{count} check-ins"
 
 
+def _nudge_label(partners):
+    if len(partners) == 1:
+        user = partners[0].user
+        return f"Nudge {user.first_name or user.username}"
+    return "Nudge partners"
+
+
+def _local_day_bounds():
+    today = timezone.localdate()
+    current_timezone = timezone.get_current_timezone()
+    start = timezone.make_aware(datetime.combine(today, datetime.min.time()), current_timezone)
+    return start, start + timedelta(days=1)
+
+
+def _nudged_recipient_ids_today(project, user):
+    start, end = _local_day_bounds()
+    return set(
+        Nudge.objects.filter(
+            project=project,
+            from_user=user,
+            created_at__gte=start,
+            created_at__lt=end,
+        ).values_list("to_user_id", flat=True)
+    )
+
+
 def _progress_with_display(progress, activity):
     return [_member_display(item, activity) for item in progress]
 
@@ -829,6 +955,21 @@ def _render_feed_items(events, nudges, current_user, color_by_user, current_peri
 
 
 def _event_feed_item(event, current_user, color_by_user, current_period_start):
+    return {
+        "type": "event",
+        "event_pk": event.pk,
+        "sort_at": event.logged_at,
+        "display_name": _display_name(event.user, event.user_id == current_user.id),
+        "initial": _display_name(event.user, event.user_id == current_user.id)[:1],
+        "color": color_by_user.get(event.user_id, "sage"),
+        "verb": f"logged a {event.activity.unit}",
+        "timestamp": _feed_timestamp(event.logged_at, current_period_start),
+        "note": event.note,
+        "reactions": _event_reactions(event, current_user),
+    }
+
+
+def _event_reactions(event, current_user):
     reactions = {}
     for reaction in event.reactions.all():
         bucket = reactions.setdefault(
@@ -839,17 +980,7 @@ def _event_feed_item(event, current_user, color_by_user, current_period_start):
         if reaction.user_id == current_user.id:
             bucket["mine"] = True
 
-    return {
-        "type": "event",
-        "sort_at": event.logged_at,
-        "display_name": _display_name(event.user, event.user_id == current_user.id),
-        "initial": _display_name(event.user, event.user_id == current_user.id)[:1],
-        "color": color_by_user.get(event.user_id, "sage"),
-        "verb": f"logged a {event.activity.unit}",
-        "timestamp": _feed_timestamp(event.logged_at, current_period_start),
-        "note": event.note,
-        "reactions": sorted(reactions.values(), key=lambda item: item["emoji"]),
-    }
+    return sorted(reactions.values(), key=lambda item: item["emoji"])
 
 
 def _nudge_feed_item(nudge, current_user, current_period_start):

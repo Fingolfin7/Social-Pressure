@@ -94,10 +94,37 @@
     return response.text();
   }
 
+  function submitReaction(row, url, emoji) {
+    if (!url || !row || !emoji) {
+      window.location.reload();
+      return;
+    }
+
+    postJson(url, { emoji })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Reaction failed.");
+        }
+        return responseHtml(response);
+      })
+      .then((html) => {
+        if (!html.trim()) {
+          window.location.reload();
+          return;
+        }
+        row.outerHTML = html;
+        openPicker = null;
+      })
+      .catch(() => {
+        window.location.reload();
+      });
+  }
+
   function bindReactions() {
     document.addEventListener("click", (event) => {
       const addButton = event.target.closest("[data-reaction-add]");
       const pickerOption = event.target.closest("[data-reaction-picker] [data-emoji]");
+      const toggleButton = event.target.closest("[data-reaction-row] .reaction-pill[data-emoji]");
 
       if (pickerOption && openPicker) {
         event.preventDefault();
@@ -107,29 +134,20 @@
         const url = openPicker.sourceButton.dataset.reactionUrl || (row && row.dataset.reactionUrl);
         const emoji = pickerOption.dataset.emoji;
 
-        if (!url || !row) {
-          window.location.reload();
-          return;
+        submitReaction(row, url, emoji);
+        return;
+      }
+
+      if (toggleButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (openPicker) {
+          closePicker();
         }
 
-        postJson(url, { emoji })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Reaction failed.");
-            }
-            return responseHtml(response);
-          })
-          .then((html) => {
-            if (!html.trim()) {
-              window.location.reload();
-              return;
-            }
-            row.outerHTML = html;
-            openPicker = null;
-          })
-          .catch(() => {
-            window.location.reload();
-          });
+        const row = toggleButton.closest("[data-reaction-row]");
+        const url = toggleButton.dataset.reactionUrl || (row && row.dataset.reactionUrl);
+        submitReaction(row, url, toggleButton.dataset.emoji);
         return;
       }
 

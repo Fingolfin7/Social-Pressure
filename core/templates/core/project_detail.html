@@ -115,6 +115,10 @@
             {{ feed_title }}<span class="section-title__meta"> · {{ feed_checkin_label }}</span>
         </h2>
 
+        {% if has_partners and not can_nudge %}
+            <p class="meta nudge-meta">You can nudge again tomorrow.</p>
+        {% endif %}
+
         {% if feed_empty %}
             <p class="screen-subtitle feed-empty">No check-ins yet. First one sets the tone.</p>
         {% else %}
@@ -133,15 +137,7 @@
                                     {% if item.note %}
                                         <p class="note-bubble">{{ item.note }}</p>
                                     {% endif %}
-                                    {% if item.reactions %}
-                                        <div class="reaction-row" aria-label="Reactions">
-                                            {% for reaction in item.reactions %}
-                                                <span class="reaction-pill{% if reaction.mine %} reaction-pill--mine{% endif %}">
-                                                    {{ reaction.emoji }} <span class="reaction-pill__count">{{ reaction.count }}</span>
-                                                </span>
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
+                                    {% include "core/_reaction_row.html" with event_pk=item.event_pk reactions=item.reactions only %}
                                 </div>
                             </article>
                         {% else %}
@@ -168,6 +164,13 @@
     </section>
 
     <div class="bottom-bar">
+        {% if has_partners %}
+            <button class="nudge-btn{% if not can_nudge %} is-disabled{% endif %}" type="button" data-nudge data-nudge-url="{% url 'project_nudge' project.pk %}" aria-label="{{ nudge_label }}"{% if not can_nudge %} disabled{% endif %}>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15 17H9m9-2V11a6 6 0 0 0-12 0v4l-2 2h16l-2-2Zm-4 4a2 2 0 0 1-4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        {% endif %}
         <a class="log-action" href="{% url 'event_log' project.pk %}">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
