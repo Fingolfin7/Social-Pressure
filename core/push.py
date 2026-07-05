@@ -26,6 +26,8 @@ def send_push_to_user(user, payload: dict) -> int:
                 vapid_claims={
                     "sub": f"mailto:{settings.VAPID_ADMIN_EMAIL}",
                 },
+                # Microsoft WNS (Edge) rejects the pywebpush default ttl=0 with 400.
+                ttl=86400,
             )
         except WebPushException as exc:
             status_code = getattr(getattr(exc, "response", None), "status_code", None)
