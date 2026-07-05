@@ -4,6 +4,7 @@
 
 {% block content %}
 <section class="screen stack--loose" data-live-root data-live-version="{{ live_version }}" data-live-url="{% url 'home_version' %}">
+    {% include "core/_install_banner.html" %}
     <div class="stack">
         <h1 class="screen-title screen-title--home">{{ greeting }}, <span class="screen-title__accent">{{ display_name }}</span>.</h1>
         <div class="screen stack--loose" data-live="projects">

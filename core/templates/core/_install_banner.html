@@ -1,0 +1,12 @@
+{% load static %}
+<div class="install-banner is-hidden" data-install-surface data-install-banner>
+    <span class="install-banner__icon" aria-hidden="true">
+        <img src="{% static 'core/images/icons/social-pressure-icon-192.png' %}" alt="">
+    </span>
+    <div class="install-banner__body">
+        <p class="install-banner__title">Install the app</p>
+        <p class="install-banner__text" data-install-text>Add Social Pressure to your home screen for one-tap check-ins.</p>
+    </div>
+    <button class="btn btn--primary install-banner__cta" type="button" data-install-accept>Install</button>
+    <button class="install-banner__dismiss" type="button" aria-label="Dismiss" data-install-dismiss>✕</button>
+</div>

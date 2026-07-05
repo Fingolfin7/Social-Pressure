@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
     <script src="{% static 'core/js/app.js' %}" defer></script>
     <script src="{% static 'core/js/push.js' %}" defer></script>
+    <script src="{% static 'core/js/install.js' %}" defer></script>
     <title>{% block title %}Social Pressure{% endblock %}</title>
 </head>
 <body{% if user.is_authenticated %} data-push-user-id="{{ user.pk }}"{% endif %}>
