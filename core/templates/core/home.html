@@ -29,7 +29,12 @@
                                     <span class="avatar avatar--34 avatar--{{ member.color }}">{{ member.display_name|slice:":1" }}</span>
                                     <div>
                                         <div class="roster-row__top">
-                                            <span class="roster-row__name">{{ member.display_name }}</span>
+                                            <span class="roster-row__name">
+                                                {{ member.display_name }}
+                                                {% if not member.is_current_user and member.streak >= 2 %}
+                                                    <span class="roster-row__streak">🔥 {{ member.streak }}</span>
+                                                {% endif %}
+                                            </span>
                                             <span class="fraction">
                                                 {% if member.target %}
                                                     <b>{{ member.count }}</b>/{{ member.target_count }}
@@ -39,14 +44,20 @@
                                             </span>
                                         </div>
                                         {% if member.target %}
-                                            <div class="gdot-row" aria-hidden="true">
-                                                {% for dot in member.dots %}
-                                                    <span class="gdot{% if dot.filled %} gdot--filled{% endif %}"></span>
-                                                {% endfor %}
-                                                {% if member.overflow %}
-                                                    <span class="gdot-overflow">+{{ member.overflow }}</span>
-                                                {% endif %}
-                                            </div>
+                                            {% if member.use_bar %}
+                                                <div class="gbar" aria-hidden="true">
+                                                    <span class="gbar__fill" style="width: {{ member.bar_percent }}%;"></span>
+                                                </div>
+                                            {% else %}
+                                                <div class="gdot-row" aria-hidden="true">
+                                                    {% for dot in member.dots %}
+                                                        <span class="gdot{% if dot.filled %} gdot--filled{% endif %}{% if dot.warn %} gdot--warn{% endif %}"></span>
+                                                    {% endfor %}
+                                                    {% if member.overflow %}
+                                                        <span class="gdot-overflow">+{{ member.overflow }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
                                         {% endif %}
                                     </div>
                                 </div>

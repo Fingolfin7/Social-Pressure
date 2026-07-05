@@ -16,9 +16,16 @@
 
 {% block content %}
 <section class="screen stack--loose">
-    <div class="stack">
+    <div class="project-hero">
         <h1 class="screen-title">{{ project.name }}</h1>
-        <p class="screen-subtitle">{{ activity.name }} &middot; {{ activity.cadence }}</p>
+        <p class="screen-subtitle">{{ project_description }}</p>
+        <span class="pill pill--period">
+            📅 {{ period_chip.label }}
+            {% if period_chip.date_range %}
+                · <b>{{ period_chip.date_range }}</b>
+            {% endif %}
+            · {{ period_chip.time_left }}
+        </span>
     </div>
 
     {% if missing_target %}
@@ -58,18 +65,87 @@
                         <div class="fraction-caption">{{ unit_plural }}</div>
                     </div>
                 </div>
+
                 {% if member.target %}
-                    <div class="gdot-row gdot-row--lg" aria-hidden="true">
-                        {% for dot in member.dots %}
-                            <span class="gdot gdot--lg{% if dot.filled %} gdot--filled{% endif %}"></span>
-                        {% endfor %}
-                        {% if member.overflow %}
-                            <span class="gdot-overflow">+{{ member.overflow }}</span>
-                        {% endif %}
-                    </div>
+                    {% if member.use_bar %}
+                        <div class="gbar" aria-hidden="true">
+                            <span class="gbar__fill" style="width: {{ member.bar_percent }}%;"></span>
+                        </div>
+                    {% else %}
+                        <div class="gdot-row gdot-row--lg" aria-hidden="true">
+                            {% for dot in member.dots %}
+                                <span class="gdot gdot--lg{% if dot.filled %} gdot--filled{% endif %}{% if dot.warn %} gdot--warn{% endif %}"></span>
+                            {% endfor %}
+                            {% if member.overflow %}
+                                <span class="gdot-overflow">+{{ member.overflow }}</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
                 {% endif %}
+
+                <div class="mcard__foot">
+                    <span class="{{ member.streak_badge.class }}">{{ member.streak_badge.text }}</span>
+                    <p class="{{ member.status.class }}">{{ member.status.text }}</p>
+                </div>
             </article>
         {% endfor %}
     </div>
+
+    <section class="stack">
+        <h2 class="section-title">
+            {{ feed_title }}<span class="section-title__meta"> · {{ feed_checkin_label }}</span>
+        </h2>
+
+        {% if feed_empty %}
+            <p class="screen-subtitle feed-empty">No check-ins yet. First one sets the tone.</p>
+        {% else %}
+            <div class="feed">
+                {% for section in feed_sections %}
+                    {% if section.label %}
+                        <p class="feed-divider">{{ section.label }}</p>
+                    {% endif %}
+                    {% for item in section.items %}
+                        {% if item.type == "event" %}
+                            <article class="feed-item member-color--{{ item.color }}">
+                                <span class="avatar avatar--38 avatar--{{ item.color }}">{{ item.initial }}</span>
+                                <div class="feed-item__content">
+                                    <p class="feed-item__line"><b>{{ item.display_name }}</b> <span class="feed-item__text">{{ item.verb }}</span></p>
+                                    <p class="feed-item__time">{{ item.timestamp }}</p>
+                                    {% if item.note %}
+                                        <p class="note-bubble">{{ item.note }}</p>
+                                    {% endif %}
+                                    {% if item.reactions %}
+                                        <div class="reaction-row" aria-label="Reactions">
+                                            {% for reaction in item.reactions %}
+                                                <span class="reaction-pill{% if reaction.mine %} reaction-pill--mine{% endif %}">
+                                                    {{ reaction.emoji }} <span class="reaction-pill__count">{{ reaction.count }}</span>
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </article>
+                        {% else %}
+                            <article class="feed-item">
+                                <span class="feed-bell" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none">
+                                        <path d="M15 17H9m9-2V11a6 6 0 0 0-12 0v4l-2 2h16l-2-2Zm-4 4a2 2 0 0 1-4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </span>
+                                <div class="feed-item__content">
+                                    <p class="feed-item__line"><b>{{ item.from_name }}</b> <span class="feed-item__text">nudged</span> <b>{{ item.to_name }}</b></p>
+                                    <p class="feed-item__time">{{ item.timestamp }}</p>
+                                </div>
+                            </article>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+
+            {% if show_earlier_link %}
+                <a class="feed-more" href="?earlier=1">Show earlier</a>
+            {% endif %}
+        {% endif %}
+    </section>
 </section>
 {% endblock %}

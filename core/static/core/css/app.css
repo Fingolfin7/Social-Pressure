@@ -719,6 +719,12 @@ body {
   font-size: 12px;
 }
 
+.project-hero {
+  display: grid;
+  justify-items: start;
+  gap: 9px;
+}
+
 .roster {
   display: grid;
   gap: 11px;
@@ -739,6 +745,9 @@ body {
 }
 
 .roster-row__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
   overflow: hidden;
   color: var(--ink);
@@ -757,6 +766,28 @@ body {
   display: grid;
   gap: 0;
   margin-inline: -22px;
+}
+
+.feed-empty {
+  padding: 18px 10px;
+  text-align: center;
+}
+
+.feed-divider {
+  margin: 4px 0 0;
+  padding: 8px 22px 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.feed-more {
+  display: inline-flex;
+  justify-self: start;
+  color: var(--clay);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .feed-item {

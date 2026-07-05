@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from unittest.mock import patch
 
@@ -7,8 +7,16 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .progress import project_member_progress
-from .models import Activity, EventLog, MemberTarget, Membership, Project, PushSubscription
+from .progress import member_streak, project_member_progress
+from .models import (
+    Activity,
+    EventLog,
+    MemberTarget,
+    Membership,
+    Project,
+    PushSubscription,
+    Reaction,
+)
 from .utils import get_period_bounds
 
 
@@ -155,6 +163,10 @@ class ProjectFlowTests(TestCase):
         membership = Membership.objects.create(project=project, user=self.user)
         return project, activity, membership
 
+    def move_joined_at(self, membership, value):
+        Membership.objects.filter(pk=membership.pk).update(joined_at=value)
+        membership.refresh_from_db()
+
     def test_create_post_makes_project_activity_creator_membership_and_redirects(self):
         response = self.client.post(
             reverse("project_create"),
@@ -265,6 +277,160 @@ class ProjectFlowTests(TestCase):
         self.assertEqual(progress[0]["color"], "clay")
         self.assertEqual(progress[1]["display_name"], "Daniel")
         self.assertEqual(progress[1]["color"], "sage")
+
+    def test_member_streak_counts_previous_periods_when_current_unmet(self):
+        now = timezone.make_aware(datetime(2026, 7, 3, 12, 0))
+        project, activity, membership = self.make_project()
+        MemberTarget.objects.create(membership=membership, activity=activity, target=2)
+        current_start, _current_end = get_period_bounds(activity.cadence, now)
+        previous_start, _previous_end = get_period_bounds(
+            activity.cadence,
+            current_start - timedelta(microseconds=1),
+        )
+        two_back_start, _two_back_end = get_period_bounds(
+            activity.cadence,
+            previous_start - timedelta(microseconds=1),
+        )
+        self.move_joined_at(membership, two_back_start - timedelta(days=1))
+
+        for logged_at in (
+            previous_start + timedelta(hours=9),
+            previous_start + timedelta(hours=10),
+            two_back_start + timedelta(hours=9),
+            two_back_start + timedelta(hours=10),
+        ):
+            EventLog.objects.create(activity=activity, user=self.user, logged_at=logged_at)
+
+        self.assertEqual(member_streak(membership, activity, now), 2)
+
+    def test_member_streak_stops_at_broken_previous_period(self):
+        now = timezone.make_aware(datetime(2026, 7, 3, 12, 0))
+        project, activity, membership = self.make_project()
+        MemberTarget.objects.create(membership=membership, activity=activity, target=2)
+        current_start, _current_end = get_period_bounds(activity.cadence, now)
+        previous_start, _previous_end = get_period_bounds(
+            activity.cadence,
+            current_start - timedelta(microseconds=1),
+        )
+        two_back_start, _two_back_end = get_period_bounds(
+            activity.cadence,
+            previous_start - timedelta(microseconds=1),
+        )
+        self.move_joined_at(membership, two_back_start - timedelta(days=1))
+
+        EventLog.objects.create(
+            activity=activity,
+            user=self.user,
+            logged_at=previous_start + timedelta(hours=9),
+        )
+        EventLog.objects.create(
+            activity=activity,
+            user=self.user,
+            logged_at=two_back_start + timedelta(hours=9),
+        )
+        EventLog.objects.create(
+            activity=activity,
+            user=self.user,
+            logged_at=two_back_start + timedelta(hours=10),
+        )
+
+        self.assertEqual(member_streak(membership, activity, now), 0)
+
+    def test_member_streak_is_zero_without_target(self):
+        now = timezone.make_aware(datetime(2026, 7, 3, 12, 0))
+        _project, activity, membership = self.make_project()
+
+        self.assertEqual(member_streak(membership, activity, now), 0)
+
+    def test_warn_next_dot_only_for_current_user_late_and_behind(self):
+        project, activity, membership = self.make_project()
+        partner_membership = Membership.objects.create(project=project, user=self.partner)
+        MemberTarget.objects.create(membership=membership, activity=activity, target=3)
+        MemberTarget.objects.create(membership=partner_membership, activity=activity, target=3)
+        late_now = timezone.make_aware(datetime(2026, 7, 5, 18, 0))
+        early_now = timezone.make_aware(datetime(2026, 6, 30, 9, 0))
+
+        late_progress = project_member_progress(project, self.user, now=late_now)
+        early_progress = project_member_progress(project, self.user, now=early_now)
+
+        self.assertTrue(late_progress[0]["warn_next_dot"])
+        self.assertFalse(late_progress[1]["warn_next_dot"])
+        self.assertFalse(early_progress[0]["warn_next_dot"])
+
+    def test_project_detail_renders_partner_event_and_grouped_reactions(self):
+        project, activity, membership = self.make_project()
+        partner_membership = Membership.objects.create(project=project, user=self.partner)
+        MemberTarget.objects.create(membership=membership, activity=activity, target=3)
+        MemberTarget.objects.create(membership=partner_membership, activity=activity, target=3)
+        start, _end = get_period_bounds(activity.cadence)
+        event = EventLog.objects.create(
+            activity=activity,
+            user=self.partner,
+            logged_at=start + timedelta(hours=10),
+            note="Leg day done",
+        )
+        Reaction.objects.create(event=event, user=self.user, emoji="👏")
+        Reaction.objects.create(event=event, user=self.partner, emoji="👏")
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+        content = response.content.decode()
+
+        self.assertContains(response, "Daniel")
+        self.assertContains(response, "logged a session")
+        self.assertContains(response, "Leg day done")
+        self.assertContains(response, "👏")
+        self.assertIn('<span class="reaction-pill__count">2</span>', content)
+        self.assertIn("reaction-pill--mine", content)
+
+    def test_project_detail_show_earlier_reveals_previous_period_event(self):
+        project, activity, membership = self.make_project()
+        MemberTarget.objects.create(membership=membership, activity=activity, target=3)
+        current_start, _current_end = get_period_bounds(activity.cadence)
+        previous_start, _previous_end = get_period_bounds(
+            activity.cadence,
+            current_start - timedelta(microseconds=1),
+        )
+        EventLog.objects.create(
+            activity=activity,
+            user=self.user,
+            logged_at=previous_start + timedelta(hours=12),
+            note="Older session",
+        )
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+        self.assertContains(response, "Show earlier")
+        self.assertNotContains(response, "Older session")
+
+        earlier_response = self.client.get(
+            f"{reverse('project_detail', kwargs={'pk': project.pk})}?earlier=1"
+        )
+        self.assertContains(earlier_response, "Last week")
+        self.assertContains(earlier_response, "Older session")
+
+    def test_home_shows_gold_streak_pill_when_current_user_on_streak(self):
+        project, activity, membership = self.make_project("Streak Project")
+        MemberTarget.objects.create(membership=membership, activity=activity, target=1)
+        current_start, _current_end = get_period_bounds(activity.cadence)
+        previous_start, _previous_end = get_period_bounds(
+            activity.cadence,
+            current_start - timedelta(microseconds=1),
+        )
+        self.move_joined_at(membership, previous_start - timedelta(days=1))
+        EventLog.objects.create(
+            activity=activity,
+            user=self.user,
+            logged_at=current_start + timedelta(hours=9),
+        )
+        EventLog.objects.create(
+            activity=activity,
+            user=self.user,
+            logged_at=previous_start + timedelta(hours=9),
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "🔥 2 weeks")
+        self.assertContains(response, "pill--gold")
 
 
 class PwaViewTests(TestCase):
