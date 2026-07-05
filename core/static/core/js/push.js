@@ -75,6 +75,78 @@
         return registration.pushManager.getSubscription();
     }
 
+    function pushPublicKey() {
+        const el = document.querySelector("[data-vapid-public-key]");
+        return el ? el.dataset.vapidPublicKey || "" : "";
+    }
+
+    function keyMatches(subscription, publicKey) {
+        // A subscription made against a previous VAPID key is unusable and will
+        // fail on send. Compare the stored applicationServerKey to the current one.
+        try {
+            const existing = subscription.options && subscription.options.applicationServerKey;
+            if (!existing) {
+                return false;
+            }
+            const current = urlBase64ToUint8Array(publicKey);
+            const existingBytes = new Uint8Array(existing);
+            if (existingBytes.length !== current.length) {
+                return false;
+            }
+            for (let i = 0; i < current.length; i += 1) {
+                if (existingBytes[i] !== current[i]) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function subscribeWithKey(registration, publicKey) {
+        return registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+    }
+
+    async function ensureSubscription(registration, publicKey) {
+        let subscription = await registration.pushManager.getSubscription();
+
+        // Drop a subscription left over from an old VAPID key so we can
+        // re-register cleanly instead of reusing a dead one.
+        if (subscription && !keyMatches(subscription, publicKey)) {
+            try {
+                await subscription.unsubscribe();
+            } catch (error) {
+                // Fall through and re-subscribe regardless.
+            }
+            subscription = null;
+        }
+
+        if (subscription) {
+            return subscription;
+        }
+
+        try {
+            return await subscribeWithKey(registration, publicKey);
+        } catch (error) {
+            // A stale or broken registration can make the first subscribe throw
+            // "push service error". Clear anything lingering and retry once so
+            // users don't have to manually clear site data.
+            const stale = await registration.pushManager.getSubscription();
+            if (stale) {
+                try {
+                    await stale.unsubscribe();
+                } catch (unsubError) {
+                    // Best effort; retry the subscribe anyway.
+                }
+            }
+            return subscribeWithKey(registration, publicKey);
+        }
+    }
+
     function syncStorageKey() {
         const userId = document.body ? document.body.dataset.pushUserId : "";
         return userId ? `${SYNC_KEY}:${userId}` : SYNC_KEY;
@@ -100,7 +172,16 @@
         }
 
         try {
-            const subscription = await currentSubscription();
+            const registration = await navigator.serviceWorker.ready;
+            const publicKey = pushPublicKey();
+            let subscription = await registration.pushManager.getSubscription();
+
+            // Silently re-register a subscription bound to an old VAPID key so
+            // stuck devices recover on their next visit without clearing data.
+            if (publicKey && (!subscription || !keyMatches(subscription, publicKey))) {
+                subscription = await ensureSubscription(registration, publicKey);
+            }
+
             if (subscription) {
                 await postJson("/push/subscribe/", subscription.toJSON());
             }
@@ -128,77 +209,112 @@
         }
 
         const registration = await navigator.serviceWorker.ready;
-        let subscription = await registration.pushManager.getSubscription();
-        if (!subscription) {
-            subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(publicKey),
-            });
-        }
+        const subscription = await ensureSubscription(registration, publicKey);
 
         await postJson("/push/subscribe/", subscription.toJSON());
         return { ok: true, code: "enabled", subscription };
     }
 
-    function bindPushControls(root) {
-        const publicKey = root.dataset.vapidPublicKey || "";
-        const enableButton = root.querySelector("[data-push-enable]");
-        const testButton = root.querySelector("[data-push-test]");
-        const status = root.querySelector("[data-push-status]");
-
-        if (!enableButton || !testButton || !status) {
+    async function disablePush() {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
             return;
         }
 
+        const endpoint = subscription.endpoint;
+        try {
+            await subscription.unsubscribe();
+        } catch (error) {
+            // Even if the browser-side unsubscribe fails, drop the server record.
+        }
+        try {
+            await postJson("/push/unsubscribe/", { endpoint: endpoint });
+        } catch (error) {
+            // Best effort; a dead record self-prunes on the next failed send.
+        }
+    }
+
+    function bindPushControls(root) {
+        const publicKey = root.dataset.vapidPublicKey || "";
+        const toggleButton = root.querySelector("[data-push-toggle]");
+        const testButton = root.querySelector("[data-push-test]");
+        const status = root.querySelector("[data-push-status]");
+
+        if (!toggleButton || !testButton || !status) {
+            return;
+        }
+
+        let busy = false;
+
         function setStatus(message) {
             status.textContent = message;
+        }
+
+        function showEnabled(enabled) {
+            toggleButton.textContent = enabled ? "Turn off notifications" : "Enable notifications";
+            toggleButton.classList.toggle("btn--primary", !enabled);
+            toggleButton.classList.toggle("btn--secondary", enabled);
+            testButton.disabled = !enabled;
         }
 
         async function refreshStatus() {
             await syncPromise;
 
             if (!pushSupported()) {
-                enableButton.disabled = true;
+                toggleButton.disabled = true;
                 testButton.disabled = true;
                 setStatus("Push notifications are not supported in this browser.");
                 return;
             }
 
             if (!publicKey) {
-                enableButton.disabled = true;
+                toggleButton.disabled = true;
                 testButton.disabled = true;
                 setStatus("Push notifications need VAPID keys before they can be enabled.");
                 return;
             }
 
             if (Notification.permission === "denied") {
-                enableButton.disabled = true;
+                toggleButton.disabled = true;
                 testButton.disabled = true;
                 setStatus("Notifications are blocked for this site.");
                 return;
             }
 
             const subscription = await currentSubscription();
+            toggleButton.disabled = false;
+            showEnabled(Boolean(subscription));
 
             if (subscription) {
-                enableButton.disabled = true;
-                testButton.disabled = false;
                 setStatus("Notifications are enabled on this device.");
             } else {
-                enableButton.disabled = false;
-                testButton.disabled = true;
                 setStatus(`Notifications are off for this device (permission: ${Notification.permission}).`);
             }
         }
 
-        enableButton.addEventListener("click", async function () {
-            enableButton.disabled = true;
-            setStatus("Requesting notification permission...");
+        toggleButton.addEventListener("click", async function () {
+            if (busy) {
+                return;
+            }
+            busy = true;
+            toggleButton.disabled = true;
+
+            const turningOff = Boolean(await currentSubscription());
 
             try {
+                if (turningOff) {
+                    setStatus("Turning off notifications...");
+                    await disablePush();
+                    showEnabled(false);
+                    setStatus("Notifications are off for this device.");
+                    return;
+                }
+
+                setStatus("Requesting notification permission...");
                 const result = await enablePush(publicKey);
                 if (!result.ok) {
-                    enableButton.disabled = false;
+                    showEnabled(false);
                     if (result.code === "denied") {
                         setStatus("Notifications are blocked for this site. Check the site permission and the browser app's notification setting in Android settings.");
                     } else if (result.code === "dismissed") {
@@ -211,11 +327,13 @@
                     return;
                 }
 
-                testButton.disabled = false;
+                showEnabled(true);
                 setStatus("Notifications are enabled on this device.");
             } catch (error) {
-                enableButton.disabled = false;
-                setStatus(`Could not enable notifications - ${error.name || "Error"}: ${error.message || "unknown"}`);
+                setStatus(`Could not update notifications - ${error.name || "Error"}: ${error.message || "unknown"}`);
+            } finally {
+                busy = false;
+                toggleButton.disabled = false;
             }
         });
 
