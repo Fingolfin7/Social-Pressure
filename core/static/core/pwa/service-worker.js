@@ -77,7 +77,16 @@ self.addEventListener("push", function (event) {
         },
     };
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    event.waitUntil(
+        Promise.all([
+            self.registration.showNotification(title, options),
+            self.clients.matchAll({ type: "window" }).then(function (clientList) {
+                clientList.forEach(function (client) {
+                    client.postMessage({ type: "refresh" });
+                });
+            }),
+        ])
+    );
 });
 
 self.addEventListener("notificationclick", function (event) {

@@ -388,6 +388,49 @@ class ProjectFlowTests(TestCase):
         self.assertContains(response, reverse("event_log", kwargs={"pk": project.pk}))
         self.assertContains(response, f"Log a {activity.unit}")
 
+    def test_project_detail_includes_live_sync_attributes(self):
+        project, _activity, _membership = self.make_project()
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertContains(response, "data-live-root")
+        self.assertContains(response, 'data-live="members"')
+        self.assertContains(response, 'data-live="feed"')
+        self.assertContains(response, f'data-live-url="{reverse("project_version", kwargs={"pk": project.pk})}"')
+
+    def test_project_version_changes_for_feed_data(self):
+        project, activity, _membership = self.make_project()
+        version_url = reverse("project_version", kwargs={"pk": project.pk})
+
+        response = self.client.get(version_url)
+        self.assertEqual(response.status_code, 200)
+        initial_version = response.json()["version"]
+        self.assertIsInstance(initial_version, str)
+
+        event = EventLog.objects.create(activity=activity, user=self.user)
+        event_version = self.client.get(version_url).json()["version"]
+        self.assertNotEqual(event_version, initial_version)
+
+        Nudge.objects.create(project=project, from_user=self.user, to_user=self.partner)
+        nudge_version = self.client.get(version_url).json()["version"]
+        self.assertNotEqual(nudge_version, event_version)
+
+        Reaction.objects.create(event=event, user=self.partner, emoji="ðŸ‘")
+        reaction_version = self.client.get(version_url).json()["version"]
+        self.assertNotEqual(reaction_version, nudge_version)
+
+        event.delete()
+        deleted_version = self.client.get(version_url).json()["version"]
+        self.assertNotEqual(deleted_version, reaction_version)
+
+    def test_project_version_non_member_gets_404(self):
+        project, _activity, _membership = self.make_project()
+        self.client.force_login(self.other)
+
+        response = self.client.get(reverse("project_version", kwargs={"pk": project.pk}))
+
+        self.assertEqual(response.status_code, 404)
+
     @patch("core.views.send_push_to_user", return_value=1)
     def test_event_log_post_creates_event_pushes_partners_and_redirects(self, send_push_to_user):
         project, activity, membership = self.make_project()

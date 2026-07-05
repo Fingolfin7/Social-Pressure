@@ -20,7 +20,7 @@
 {% endblock %}
 
 {% block content %}
-<section class="screen stack--loose">
+<section class="screen stack--loose" data-live-root data-live-version="{{ live_version }}" data-live-url="{% url 'project_version' project.pk %}">
     <div class="project-hero">
         <h1 class="screen-title">{{ project.name }}</h1>
         <p class="screen-subtitle">{{ project_description }}</p>
@@ -43,7 +43,7 @@
         </section>
     {% endif %}
 
-    <div class="stack">
+    <div class="stack" data-live="members">
         {% for member in progress %}
             <article class="mcard{% if member.is_current_user %} mcard--you{% endif %} member-color--{{ member.color }}">
                 <div class="mcard__head">
@@ -110,6 +110,7 @@
         </section>
     {% endif %}
 
+    <div data-live="feed">
     <section class="stack">
         <h2 class="section-title">
             {{ feed_title }}<span class="section-title__meta"> · {{ feed_checkin_label }}</span>
@@ -158,6 +159,7 @@
             {% endif %}
         {% endif %}
     </section>
+    </div>
 
     <div class="bottom-bar">
         {% if has_partners %}

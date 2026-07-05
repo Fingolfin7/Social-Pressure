@@ -78,6 +78,7 @@
     }
     openPicker.replaceWith(openPicker.sourceButton);
     openPicker = null;
+    document.dispatchEvent(new Event("live:ready"));
   }
 
   function appendReactionOption(picker, emoji) {
@@ -147,10 +148,106 @@
         }
         row.outerHTML = html;
         openPicker = null;
+        document.dispatchEvent(new Event("live:ready"));
       })
       .catch(() => {
         window.location.reload();
       });
+  }
+
+  function bindLiveSync() {
+    const root = document.querySelector("[data-live-root]");
+    if (!root || !root.dataset.liveUrl) {
+      return;
+    }
+
+    let version = root.dataset.liveVersion || "";
+    let pending = false;
+    let busy = false;
+
+    function liveControlFocused() {
+      const active = document.activeElement;
+      return Boolean(active && active.closest("[data-live]") && active.matches("input, textarea, select, button"));
+    }
+
+    function blocked() {
+      return Boolean(openPicker || liveControlFocused());
+    }
+
+    function nextSection(doc, key) {
+      return Array.from(doc.querySelectorAll("[data-live]")).find((node) => node.dataset.live === key);
+    }
+
+    async function refreshLiveSections() {
+      if (blocked()) {
+        pending = true;
+        return;
+      }
+      try {
+        const response = await fetch(window.location.href, { headers: { "X-Requested-With": "fetch" } });
+        if (!response.ok) {
+          return;
+        }
+        const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+        if (blocked()) {
+          pending = true;
+          return;
+        }
+        document.querySelectorAll("[data-live]").forEach((node) => {
+          const next = nextSection(doc, node.dataset.live);
+          if (next) {
+            node.innerHTML = next.innerHTML;
+          }
+        });
+        const nextRoot = doc.querySelector("[data-live-root]");
+        if (nextRoot && nextRoot.dataset.liveVersion) {
+          version = nextRoot.dataset.liveVersion;
+          root.dataset.liveVersion = version;
+        }
+        pending = false;
+      } catch (_error) {}
+    }
+
+    async function checkVersion() {
+      if (busy || document.visibilityState !== "visible") {
+        return;
+      }
+      busy = true;
+      try {
+        const response = await fetch(root.dataset.liveUrl, { headers: { Accept: "application/json" } });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.version && data.version !== version) {
+            await refreshLiveSections();
+          }
+        }
+      } catch (_error) {
+      } finally {
+        busy = false;
+      }
+    }
+
+    function applyPending() {
+      if (pending && !blocked()) {
+        refreshLiveSections();
+      }
+    }
+
+    window.setInterval(checkVersion, 10000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        checkVersion();
+      }
+    });
+    document.addEventListener("focusout", () => window.setTimeout(applyPending, 0), true);
+    document.addEventListener("live:ready", applyPending);
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data && event.data.type === "refresh") {
+          checkVersion();
+        }
+      });
+    }
   }
 
   function bindReactions() {
@@ -450,6 +547,7 @@
 
   bindLogForms();
   bindReactions();
+  bindLiveSync();
   bindCopies();
   bindNudges();
   bindCreateHelpers();

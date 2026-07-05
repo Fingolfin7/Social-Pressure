@@ -5,12 +5,14 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Count, Max
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.formats import date_format
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
@@ -286,11 +288,19 @@ def project_detail(request, pk):
             "has_partners": bool(partners),
             "nudge_label": _nudge_label(partners),
             "allowed_reactions": ALLOWED_REACTIONS,
+            "live_version": _project_live_version(project),
             "invite_url": request.build_absolute_uri(join_path),
             "unit_plural": _plural_unit(activity.unit),
             "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
         },
     )
+
+
+@login_required
+@never_cache
+def project_version(request, pk):
+    project = _member_project_or_404(pk, request.user)
+    return JsonResponse({"version": _project_live_version(project)})
 
 
 @login_required
@@ -508,6 +518,35 @@ def _first_activity_or_404(project):
     if not activity:
         raise Http404("Project has no activity.")
     return activity
+
+
+def _project_live_version(project):
+    event_stats = EventLog.objects.filter(activity__project=project).aggregate(
+        count=Count("pk"),
+        max_created=Max("created_at"),
+    )
+    nudge_stats = Nudge.objects.filter(project=project).aggregate(
+        count=Count("pk"),
+        max_created=Max("created_at"),
+    )
+    reaction_stats = Reaction.objects.filter(event__activity__project=project).aggregate(
+        count=Count("pk"),
+        max_created=Max("created_at"),
+    )
+    return ":".join(
+        [
+            str(event_stats["count"]),
+            _version_timestamp(event_stats["max_created"]),
+            str(nudge_stats["count"]),
+            _version_timestamp(nudge_stats["max_created"]),
+            str(reaction_stats["count"]),
+            _version_timestamp(reaction_stats["max_created"]),
+        ]
+    )
+
+
+def _version_timestamp(value):
+    return value.isoformat() if value else ""
 
 
 def _greeting_word():
