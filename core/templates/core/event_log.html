@@ -17,7 +17,7 @@
 {% block content %}
 <section class="screen screen--log">
     <div class="log-hero">
-        <span class="avatar avatar--56 avatar--clay">{{ current_initial }}</span>
+        {% include "core/_avatar.html" with avatar_user=user initial=current_initial color="clay" size=56 only %}
         <div class="stack">
             <h1 class="screen-title log-title">Did you make it?</h1>
             <p class="screen-subtitle log-support">

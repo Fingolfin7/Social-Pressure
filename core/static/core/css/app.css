@@ -449,6 +449,12 @@ body {
   color: var(--ink-2);
 }
 
+.avatar-link {
+  display: inline-flex;
+  color: inherit;
+  text-decoration: none;
+}
+
 .member-color--clay {
   --member-color: var(--clay);
   --member-soft: var(--clay-soft);
@@ -1252,6 +1258,26 @@ body {
   font-weight: 800;
 }
 
+.profile-hero {
+  align-items: center;
+  text-align: center;
+}
+
+.profile-logout {
+  display: flex;
+  justify-content: center;
+}
+
+.profile-logout button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .receipt-pill {
   gap: 8px;
   padding: 6px 11px 6px 6px;
@@ -1323,6 +1349,20 @@ body {
   margin: -2px 0 0;
   color: var(--ink-2);
   font-size: 12px;
+}
+
+.checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.checkbox-field input {
+  width: auto;
+  accent-color: var(--clay);
 }
 
 .form-grid {

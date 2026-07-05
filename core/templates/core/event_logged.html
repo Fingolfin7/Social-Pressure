@@ -31,7 +31,7 @@
 
     {% if receipt %}
         <span class="pill pill--period receipt-pill">
-            <span class="avatar avatar--24 avatar--sage">{{ receipt.initial }}</span>
+            {% include "core/_avatar.html" with avatar_user=receipt.user initial=receipt.initial color="sage" size=24 only %}
             {{ receipt.text }}
         </span>
     {% endif %}

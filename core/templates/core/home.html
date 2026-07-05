@@ -25,7 +25,7 @@
                         <div class="roster">
                             {% for member in card.progress|slice:":3" %}
                                 <div class="roster-row member-color--{{ member.color }}">
-                                    <span class="avatar avatar--34 avatar--{{ member.color }}">{{ member.display_name|slice:":1" }}</span>
+                                    {% include "core/_avatar.html" with avatar_user=member.user initial=member.user.first_name|default:member.user.username|slice:":1" color=member.color size=34 only %}
                                     <div>
                                         <div class="roster-row__top">
                                             <span class="roster-row__name">

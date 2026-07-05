@@ -762,9 +762,14 @@ def _push_receipt(project, current_user, partner_count):
         .order_by("joined_at", "pk")
     )
     if partner_count == 1 and partners:
-        name = partners[0].user.first_name or partners[0].user.username
-        return {"initial": name[:1], "text": f"{name} just got the notification"}
-    return {"initial": "Y", "text": "Your partners just got the notification"}
+        partner_user = partners[0].user
+        name = partner_user.first_name or partner_user.username
+        return {
+            "user": partner_user,
+            "initial": _avatar_initial(partner_user),
+            "text": f"{name} just got the notification",
+        }
+    return {"user": None, "initial": "Y", "text": "Your partners just got the notification"}
 
 
 def _project_description(project, activity):
@@ -779,6 +784,10 @@ def _display_name(user, is_current_user=False):
     if is_current_user:
         return "You"
     return user.first_name or user.username
+
+
+def _avatar_initial(user):
+    return (user.first_name or user.username)[:1]
 
 
 def _inviter_display_name(project):
@@ -1025,9 +1034,10 @@ def _event_feed_item(event, current_user, color_by_user, current_period_start):
     return {
         "type": "event",
         "event_pk": event.pk,
+        "user": event.user,
         "sort_at": event.logged_at,
         "display_name": _display_name(event.user, event.user_id == current_user.id),
-        "initial": _display_name(event.user, event.user_id == current_user.id)[:1],
+        "initial": _avatar_initial(event.user),
         "color": color_by_user.get(event.user_id, "sage"),
         "verb": f"logged a {event.activity.unit}",
         "timestamp": _feed_timestamp(event.logged_at, current_period_start),

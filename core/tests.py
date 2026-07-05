@@ -1,10 +1,15 @@
 from datetime import datetime, timedelta
 import json
+import os
+import shutil
+import tempfile
 from urllib.parse import quote
 import uuid
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -22,6 +27,12 @@ from .models import (
 )
 from .utils import get_period_bounds
 from .views import ALLOWED_REACTIONS
+
+
+TINY_GIF = (
+    b"GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00\xff\xff\xff,"
+    b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+)
 
 
 class CoreModelTests(TestCase):
@@ -167,6 +178,92 @@ class PushViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"sent": 1})
         send_push_to_user.assert_called_once()
+
+
+class UserProfileTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="henry",
+            email="profile@example.com",
+            password="testpass123",
+            first_name="Henry",
+        )
+        self.client.force_login(self.user)
+
+    def test_profile_get_renders_form(self):
+        response = self.client.get(reverse("profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This is you.")
+        self.assertContains(response, "Your name")
+        self.assertContains(response, "What partners see.")
+
+    def test_profile_post_updates_first_name_and_redirects(self):
+        response = self.client.post(reverse("profile"), {"first_name": "Hank"})
+
+        self.assertRedirects(response, reverse("profile"), fetch_redirect_response=False)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Hank")
+
+    def test_profile_post_uploads_small_avatar_file(self):
+        media_root = tempfile.mkdtemp()
+        try:
+            with self.settings(MEDIA_ROOT=media_root):
+                upload = SimpleUploadedFile(
+                    "avatar.gif",
+                    TINY_GIF,
+                    content_type="image/gif",
+                )
+
+                response = self.client.post(
+                    reverse("profile"),
+                    {"first_name": "Henry", "avatar": upload},
+                )
+
+                self.assertRedirects(response, reverse("profile"), fetch_redirect_response=False)
+                self.user.refresh_from_db()
+                self.assertTrue(self.user.avatar.name.startswith("avatars/"))
+                self.assertTrue(os.path.exists(os.path.join(media_root, self.user.avatar.name)))
+        finally:
+            shutil.rmtree(media_root)
+
+    def test_profile_rejects_oversized_avatar(self):
+        upload = SimpleUploadedFile(
+            "huge.jpg",
+            b"x" * (6 * 1024 * 1024),
+            content_type="image/jpeg",
+        )
+
+        response = self.client.post(
+            reverse("profile"),
+            {"first_name": "Henry", "avatar": upload},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "That photo&#x27;s too big — 5 MB max.")
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar)
+
+    def test_profile_remove_photo_clears_avatar_and_deletes_file(self):
+        media_root = tempfile.mkdtemp()
+        try:
+            with self.settings(MEDIA_ROOT=media_root):
+                self.user.avatar.save("old.gif", ContentFile(TINY_GIF), save=True)
+                old_path = os.path.join(media_root, self.user.avatar.name)
+                self.assertTrue(os.path.exists(old_path))
+
+                response = self.client.post(
+                    reverse("profile"),
+                    {"first_name": "Henry", "remove_photo": "on"},
+                )
+
+                self.assertRedirects(response, reverse("profile"), fetch_redirect_response=False)
+                self.user.refresh_from_db()
+                self.assertFalse(self.user.avatar)
+                self.assertFalse(os.path.exists(old_path))
+        finally:
+            shutil.rmtree(media_root)
 
 
 class ProjectFlowTests(TestCase):
@@ -463,6 +560,23 @@ class ProjectFlowTests(TestCase):
         self.assertContains(response, 'data-live="feed"')
         self.assertContains(response, f'data-live-url="{reverse("project_version", kwargs={"pk": project.pk})}"')
 
+    def test_project_detail_renders_avatar_image_or_initial(self):
+        media_root = tempfile.mkdtemp()
+        try:
+            with self.settings(MEDIA_ROOT=media_root):
+                self.user.avatar.save("henry.gif", ContentFile(TINY_GIF), save=True)
+                project, _activity, _membership = self.make_project()
+                Membership.objects.create(project=project, user=self.partner)
+
+                response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+                content = response.content.decode()
+
+                self.assertIn('<span class="avatar avatar--46 avatar--clay"><img', content)
+                self.assertIn(self.user.avatar.url, content)
+                self.assertIn('<span class="avatar avatar--46 avatar--sage">D</span>', content)
+        finally:
+            shutil.rmtree(media_root)
+
     @override_settings(VAPID_PUBLIC_KEY="test-public-key")
     def test_project_detail_includes_push_banner_with_public_key(self):
         project, _activity, _membership = self.make_project()
@@ -480,7 +594,7 @@ class ProjectFlowTests(TestCase):
         self.assertNotContains(response, "data-push-banner")
         self.assertContains(response, "core/js/push.js")
 
-    def test_base_topbar_avatar_uses_username_before_email(self):
+    def test_base_topbar_avatar_links_to_profile_and_uses_username_before_email(self):
         User = get_user_model()
         avatar_user = User.objects.create_user(
             username="Helen",
@@ -491,8 +605,11 @@ class ProjectFlowTests(TestCase):
 
         response = self.client.get(reverse("home"))
 
-        self.assertContains(response, 'aria-label="Log out">H</a>', html=False)
-        self.assertNotContains(response, 'aria-label="Log out">r</a>', html=False)
+        self.assertContains(response, f'href="{reverse("profile")}"')
+        self.assertContains(response, 'aria-label="Profile"')
+        self.assertContains(response, 'avatar--34 avatar--clay">H</span>', html=False)
+        self.assertNotContains(response, 'avatar--34 avatar--clay">r</span>', html=False)
+        self.assertNotContains(response, f'href="{reverse("logout")}"')
 
     def test_project_version_changes_for_feed_data(self):
         project, activity, _membership = self.make_project()

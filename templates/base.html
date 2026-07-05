@@ -24,7 +24,9 @@
             <div class="topbar__right">
                 {% if user.is_authenticated %}
                     {% firstof user.first_name user.username as avatar_name %}
-                    <a class="avatar avatar--34" href="{% url 'logout' %}" aria-label="Log out">{{ avatar_name|slice:":1" }}</a>
+                    <a class="avatar-link" href="{% url 'profile' %}" aria-label="Profile">
+                        {% include "core/_avatar.html" with avatar_user=user initial=avatar_name|slice:":1" color="clay" size=34 only %}
+                    </a>
                 {% else %}
                     <a class="topbar__link" href="{% url 'login' %}">Log in</a>
                 {% endif %}

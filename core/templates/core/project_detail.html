@@ -49,7 +49,7 @@
         {% for member in progress %}
             <article class="mcard{% if member.is_current_user %} mcard--you{% endif %} member-color--{{ member.color }}">
                 <div class="mcard__head">
-                    <span class="avatar avatar--46 avatar--{{ member.color }}">{{ member.display_name|slice:":1" }}</span>
+                    {% include "core/_avatar.html" with avatar_user=member.user initial=member.user.first_name|default:member.user.username|slice:":1" color=member.color size=46 only %}
                     <div class="mcard__identity">
                         <h2 class="mcard__name">
                             {{ member.display_name }}
@@ -160,7 +160,7 @@
                     {% for item in section.items %}
                         {% if item.type == "event" %}
                             <article class="feed-item member-color--{{ item.color }}">
-                                <span class="avatar avatar--38 avatar--{{ item.color }}">{{ item.initial }}</span>
+                                {% include "core/_avatar.html" with avatar_user=item.user initial=item.initial color=item.color size=38 only %}
                                 <div class="feed-item__content">
                                     <p class="feed-item__line"><b>{{ item.display_name }}</b> <span class="feed-item__text">{{ item.verb }}</span></p>
                                     <p class="feed-item__time">{{ item.timestamp }}</p>
