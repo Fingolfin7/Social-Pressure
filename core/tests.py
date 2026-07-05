@@ -109,6 +109,41 @@ class PushViewTests(TestCase):
         self.assertEqual(subscription.auth, "auth-secret")
         self.assertEqual(subscription.user_agent, "Django test client")
 
+    def test_subscribe_moves_existing_endpoint_from_other_user(self):
+        User = get_user_model()
+        other_user = User.objects.create_user(
+            username="otherpush",
+            email="otherpush@example.com",
+            password="testpass123",
+        )
+        endpoint = "https://push.example/shared-subscription"
+        PushSubscription.objects.create(
+            user=other_user,
+            endpoint=endpoint,
+            p256dh="old-public-key",
+            auth="old-auth-secret",
+        )
+
+        response = self.client.post(
+            "/push/subscribe/",
+            data=json.dumps(
+                {
+                    "endpoint": endpoint,
+                    "keys": {
+                        "p256dh": "new-public-key",
+                        "auth": "new-auth-secret",
+                    },
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PushSubscription.objects.filter(user=other_user, endpoint=endpoint).exists())
+        subscription = PushSubscription.objects.get(user=self.user, endpoint=endpoint)
+        self.assertEqual(subscription.p256dh, "new-public-key")
+        self.assertEqual(subscription.auth, "new-auth-secret")
+
     @override_settings(
         VAPID_PRIVATE_KEY="private-key",
         VAPID_PUBLIC_KEY="public-key",
@@ -220,6 +255,7 @@ class ProjectFlowTests(TestCase):
         self.assertIn("<span data-recap-activity>sessions</span>", content)
         self.assertIn("<span data-recap-unit>session</span>", content)
         self.assertIn("<span data-recap-cadence>week</span>", content)
+        self.assertIn("<span data-recap-duration>for as long as you both keep it up</span>", content)
 
     def test_create_post_rerender_recap_uses_posted_values_and_valid_until_date(self):
         response = self.client.post(
@@ -393,6 +429,7 @@ class ProjectFlowTests(TestCase):
         self.assertContains(response, "fb-messenger://share")
         self.assertContains(response, "data-share-native")
         self.assertContains(response, encoded_invite_url)
+        self.assertContains(response, "M17.472 14.382")
 
     def test_project_detail_partner_project_omits_invite_share_row(self):
         project, _activity, _membership = self.make_project()
@@ -442,6 +479,20 @@ class ProjectFlowTests(TestCase):
         self.assertContains(response, "data-push-controls")
         self.assertNotContains(response, "data-push-banner")
         self.assertContains(response, "core/js/push.js")
+
+    def test_base_topbar_avatar_uses_username_before_email(self):
+        User = get_user_model()
+        avatar_user = User.objects.create_user(
+            username="Helen",
+            email="robert@example.com",
+            password="testpass123",
+        )
+        self.client.force_login(avatar_user)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, 'aria-label="Log out">H</a>', html=False)
+        self.assertNotContains(response, 'aria-label="Log out">r</a>', html=False)
 
     def test_project_version_changes_for_feed_data(self):
         project, activity, _membership = self.make_project()

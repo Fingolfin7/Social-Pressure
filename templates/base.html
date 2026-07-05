@@ -17,13 +17,13 @@
     <script src="{% static 'core/js/push.js' %}" defer></script>
     <title>{% block title %}Social Pressure{% endblock %}</title>
 </head>
-<body>
+<body{% if user.is_authenticated %} data-push-user-id="{{ user.pk }}"{% endif %}>
     {% block topbar %}
         <header class="topbar">
             <a class="topbar__brand" href="{% url 'home' %}">Social Pressure<span class="topbar__brand-dot">.</span></a>
             <div class="topbar__right">
                 {% if user.is_authenticated %}
-                    {% firstof user.first_name user.email user.username as avatar_name %}
+                    {% firstof user.first_name user.username as avatar_name %}
                     <a class="avatar avatar--34" href="{% url 'logout' %}" aria-label="Log out">{{ avatar_name|slice:":1" }}</a>
                 {% else %}
                     <a class="topbar__link" href="{% url 'login' %}">Log in</a>

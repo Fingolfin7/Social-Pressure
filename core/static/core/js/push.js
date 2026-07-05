@@ -1,5 +1,6 @@
 (function () {
     const SNOOZE_KEY = "push-banner-snooze";
+    const SYNC_KEY = "push-synced";
     const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 
     function getCookie(name) {
@@ -74,6 +75,40 @@
         return registration.pushManager.getSubscription();
     }
 
+    function syncStorageKey() {
+        const userId = document.body ? document.body.dataset.pushUserId : "";
+        return userId ? `${SYNC_KEY}:${userId}` : SYNC_KEY;
+    }
+
+    function pushSurfacePresent() {
+        return Boolean(document.querySelector("[data-push-controls], [data-push-banner]"));
+    }
+
+    async function autoSyncExistingSubscription() {
+        if (!pushSurfacePresent() || !pushSupported() || Notification.permission !== "granted") {
+            return;
+        }
+
+        try {
+            const key = syncStorageKey();
+            if (sessionStorage.getItem(key)) {
+                return;
+            }
+            sessionStorage.setItem(key, "1");
+        } catch (error) {
+            // Keep going when storage is unavailable; the POST is idempotent.
+        }
+
+        try {
+            const subscription = await currentSubscription();
+            if (subscription) {
+                await postJson("/push/subscribe/", subscription.toJSON());
+            }
+        } catch (error) {
+            // Auto-heal is best-effort; visible controls will report their own state.
+        }
+    }
+
     async function enablePush(publicKey) {
         if (!pushSupported()) {
             return { ok: false, code: "unsupported" };
@@ -120,6 +155,8 @@
         }
 
         async function refreshStatus() {
+            await syncPromise;
+
             if (!pushSupported()) {
                 enableButton.disabled = true;
                 testButton.disabled = true;
@@ -212,6 +249,8 @@
         }
 
         async function maybeShow() {
+            await syncPromise;
+
             if (!pushSupported() || !publicKey || Notification.permission === "denied" || snoozed()) {
                 return;
             }
@@ -257,6 +296,7 @@
         });
     }
 
+    const syncPromise = autoSyncExistingSubscription();
     document.querySelectorAll("[data-push-controls]").forEach(bindPushControls);
     document.querySelectorAll("[data-push-banner]").forEach(bindPushBanner);
 }());

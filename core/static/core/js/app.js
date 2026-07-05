@@ -468,8 +468,10 @@
     const recapActivity = document.querySelector("[data-recap-activity]");
     const recapUnit = document.querySelector("[data-recap-unit]");
     const recapCadence = document.querySelector("[data-recap-cadence]");
+    const recapDuration = document.querySelector("[data-recap-duration]");
     const activityField = document.querySelector("[data-project-activity], input[name='activity'], input[name='activity_name'], #id_activity");
     const unitField = document.querySelector("[data-project-unit], input[name='unit'], #id_unit");
+    const endDateField = document.querySelector("input[name='end_date'], #id_end_date");
     const cadenceNouns = {
       daily: "day",
       weekly: "week",
@@ -491,6 +493,21 @@
         const cadence = selectedCadence ? selectedCadence.value : "weekly";
         recapCadence.textContent = cadenceNouns[cadence] || "week";
       }
+      if (recapDuration) {
+        const selectedDuration = document.querySelector("input[name='duration']:checked");
+        if (!selectedDuration || selectedDuration.value !== "until") {
+          recapDuration.textContent = "for as long as you both keep it up";
+        } else if (endDateField && endDateField.value) {
+          const date = new Date(endDateField.value);
+          if (Number.isNaN(date.getTime())) {
+            recapDuration.textContent = "until the date you pick";
+          } else {
+            recapDuration.textContent = `until ${date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+          }
+        } else {
+          recapDuration.textContent = "until the date you pick";
+        }
+      }
     };
 
     [activityField, unitField].forEach((field) => {
@@ -503,6 +520,13 @@
     document.querySelectorAll("input[name='cadence'], [data-project-cadence], select[name='cadence'], #id_cadence").forEach((input) => {
       input.addEventListener("change", syncRecap);
     });
+    document.querySelectorAll("input[name='duration']").forEach((input) => {
+      input.addEventListener("change", syncRecap);
+    });
+    if (endDateField) {
+      endDateField.addEventListener("input", syncRecap);
+      endDateField.addEventListener("change", syncRecap);
+    }
 
     document.querySelectorAll("input[type='radio'][data-name][data-activity][data-unit][data-cadence]").forEach((input) => {
       input.addEventListener("change", () => {

@@ -1192,6 +1192,7 @@ def push_subscribe(request):
     if not endpoint or not p256dh or not auth:
         return json_error("Subscription endpoint and keys are required.")
 
+    PushSubscription.objects.filter(endpoint=endpoint).exclude(user=request.user).delete()
     PushSubscription.objects.update_or_create(
         user=request.user,
         endpoint=endpoint,
