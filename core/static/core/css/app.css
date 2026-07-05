@@ -1485,6 +1485,68 @@ body {
   gap: var(--space-3);
 }
 
+.push-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: var(--cream-2);
+}
+
+.push-banner__icon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f9edd4;
+  color: var(--gold);
+}
+
+.push-banner__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.push-banner__text {
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.push-banner__enable {
+  min-height: 34px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  box-shadow: none;
+}
+
+.push-banner__dismiss {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.push-banner__dismiss:hover {
+  background: var(--card);
+}
+
 .status-text {
   margin: 0;
   color: var(--ink-2);

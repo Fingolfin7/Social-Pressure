@@ -292,6 +292,7 @@ def project_detail(request, pk):
             "invite_url": request.build_absolute_uri(join_path),
             "unit_plural": _plural_unit(activity.unit),
             "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
+            "vapid_public_key": settings.VAPID_PUBLIC_KEY,
         },
     )
 

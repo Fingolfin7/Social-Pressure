@@ -398,6 +398,23 @@ class ProjectFlowTests(TestCase):
         self.assertContains(response, 'data-live="feed"')
         self.assertContains(response, f'data-live-url="{reverse("project_version", kwargs={"pk": project.pk})}"')
 
+    @override_settings(VAPID_PUBLIC_KEY="test-public-key")
+    def test_project_detail_includes_push_banner_with_public_key(self):
+        project, _activity, _membership = self.make_project()
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertContains(response, "data-push-banner")
+        self.assertContains(response, 'data-vapid-public-key="test-public-key"')
+        self.assertContains(response, "Get a ping when your partners check in.")
+
+    def test_home_includes_push_card_and_base_push_script(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "data-push-controls")
+        self.assertNotContains(response, "data-push-banner")
+        self.assertContains(response, "core/js/push.js")
+
     def test_project_version_changes_for_feed_data(self):
         project, activity, _membership = self.make_project()
         version_url = reverse("project_version", kwargs={"pk": project.pk})
