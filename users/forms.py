@@ -38,7 +38,10 @@ class UserProfileForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={"autocomplete": "name"}),
     )
-    avatar = forms.ImageField(required=False)
+    avatar = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={"accept": "image/*", "class": "avatar-file-input"}),
+    )
     remove_photo = forms.BooleanField(required=False, label="Remove photo")
 
     class Meta:

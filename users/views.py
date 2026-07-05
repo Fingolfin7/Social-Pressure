@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
@@ -88,5 +89,6 @@ def profile(request):
         {
             "form": form,
             "avatar_initial": avatar_name[:1],
+            "vapid_public_key": settings.VAPID_PUBLIC_KEY,
         },
     )

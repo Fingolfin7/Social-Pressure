@@ -91,20 +91,6 @@
         </div>
     </div>
 
-    <section
-        class="card push-card"
-        data-push-controls
-        data-vapid-public-key="{{ vapid_public_key }}"
-    >
-        <div class="stack">
-            <h2 class="section-title">Notifications</h2>
-            <p class="screen-subtitle">Let partners know when you show up.</p>
-        </div>
-        <div class="button-row">
-            <button class="btn btn--primary" type="button" data-push-enable>Enable notifications</button>
-            <button class="btn btn--secondary" type="button" data-push-test disabled>Send test notification</button>
-        </div>
-        <p class="status-text" data-push-status>Checking notification status...</p>
-    </section>
+    {% include "core/_push_banner.html" %}
 </section>
 {% endblock %}

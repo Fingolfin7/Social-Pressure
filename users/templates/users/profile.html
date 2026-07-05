@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Profile - Social Pressure{% endblock %}
 
@@ -24,7 +25,7 @@
         </div>
     </div>
 
-    <form class="form" method="post" enctype="multipart/form-data">
+    <form class="form" method="post" enctype="multipart/form-data" data-avatar-editor>
         {% csrf_token %}
         {{ form.non_field_errors }}
         <div class="field">
@@ -33,23 +34,51 @@
             {{ form.first_name.errors }}
             <p class="field-help">{{ form.first_name.help_text }}</p>
         </div>
+
         <div class="field">
-            <label class="field__label" for="{{ form.avatar.id_for_label }}">{{ form.avatar.label }}</label>
+            <span class="field__label">Avatar</span>
+            <div class="avatar-picker">
+                <span class="avatar avatar--72 avatar--clay" data-avatar-preview data-initial="{{ avatar_initial }}">{% if user.avatar %}<img src="{{ user.avatar.url }}" alt="">{% else %}{{ avatar_initial }}{% endif %}</span>
+                <div class="avatar-picker__actions">
+                    <button class="btn btn--secondary btn--sm" type="button" data-avatar-pick>{% if user.avatar %}Change photo{% else %}Add photo{% endif %}</button>
+                    <button class="btn-link{% if not user.avatar %} is-hidden{% endif %}" type="button" data-avatar-remove>Remove photo</button>
+                    <p class="field-help" data-avatar-hint>JPG or PNG, up to 5&nbsp;MB. You'll crop it to a circle.</p>
+                </div>
+            </div>
             {{ form.avatar }}
             {{ form.avatar.errors }}
-        </div>
-        {% if user.avatar %}
-            <label class="checkbox-field" for="{{ form.remove_photo.id_for_label }}">
+            <label class="checkbox-field is-hidden" data-avatar-remove-field>
                 {{ form.remove_photo }}
                 <span>{{ form.remove_photo.label }}</span>
             </label>
-        {% endif %}
+        </div>
+
         <button class="btn btn--primary btn--full" type="submit">Save</button>
     </form>
+
+    <section
+        class="card push-card"
+        data-push-controls
+        data-vapid-public-key="{{ vapid_public_key }}"
+    >
+        <div class="stack">
+            <h2 class="section-title">Notifications</h2>
+            <p class="screen-subtitle">Let partners know when you show up.</p>
+        </div>
+        <div class="button-row">
+            <button class="btn btn--primary" type="button" data-push-enable>Enable notifications</button>
+            <button class="btn btn--secondary" type="button" data-push-test disabled>Send test notification</button>
+        </div>
+        <p class="status-text" data-push-status>Checking notification status...</p>
+    </section>
 
     <form method="post" action="{% url 'logout' %}" class="profile-logout">
         {% csrf_token %}
         <button type="submit">Log out</button>
     </form>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'core/js/avatar.js' %}" defer></script>
 {% endblock %}
