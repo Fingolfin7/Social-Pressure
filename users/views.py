@@ -3,23 +3,41 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import UserLoginForm, UserRegisterForm
 
 
 def register(request):
+    redirect_to = _safe_next(request, request.POST.get("next") or request.GET.get("next") or "")
     if request.method == "POST":
         form = UserRegisterForm(request.POST)
         if form.is_valid():
             user = form.save()
             auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             messages.success(request, "Account created.")
+            if url_has_allowed_host_and_scheme(
+                redirect_to,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(redirect_to)
             return redirect("home")
         messages.error(request, "Please correct the errors below.")
     else:
         form = UserRegisterForm()
 
-    return render(request, "users/register.html", {"form": form})
+    return render(request, "users/register.html", {"form": form, "next": redirect_to})
+
+
+def _safe_next(request, redirect_to):
+    if url_has_allowed_host_and_scheme(
+        redirect_to,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect_to
+    return ""
 
 
 class CustomLoginView(LoginView):

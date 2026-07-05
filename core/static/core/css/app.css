@@ -147,6 +147,10 @@ body {
   align-items: center;
 }
 
+.topbar--brand-only {
+  justify-content: flex-start;
+}
+
 .topbar__context {
   overflow: hidden;
   color: var(--ink-2);
@@ -415,6 +419,10 @@ body {
   width: 64px;
   height: 64px;
   font-size: 26px;
+}
+
+.avatar--clay {
+  --avatar-bg: var(--clay);
 }
 
 .avatar--sage {
@@ -723,6 +731,109 @@ body {
   display: grid;
   justify-items: start;
   gap: 9px;
+}
+
+.join-screen {
+  padding-top: var(--space-2);
+}
+
+.join-hero,
+.join-target {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.join-kicker {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.join-kicker b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.join-title {
+  max-width: 320px;
+  font-size: 24px;
+}
+
+.pair-graphic {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pair-graphic .avatar + .avatar {
+  margin-left: -16px;
+}
+
+.pair-graphic__heart {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--cream);
+  border-radius: 50%;
+  background: var(--clay);
+  color: var(--card);
+  box-shadow: 0 2px 8px rgba(90,70,50,.08);
+}
+
+.pair-graphic__heart svg {
+  width: 15px;
+  height: 15px;
+}
+
+.detail-card {
+  padding-block: 4px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+}
+
+.detail-row:first-child {
+  border-top: 0;
+}
+
+.detail-row__key {
+  color: var(--ink-2);
+}
+
+.detail-row__value {
+  max-width: 58%;
+  color: var(--ink);
+  font-weight: 700;
+  text-align: right;
+}
+
+.join-form {
+  gap: var(--space-5);
+}
+
+.join-footer {
+  margin: -8px 0 0;
+  color: var(--ink-2);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.invite-reminder {
+  text-align: center;
 }
 
 .roster {

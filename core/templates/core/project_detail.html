@@ -10,7 +10,12 @@
         </svg>
     </a>
     <div class="topbar__context"></div>
-    <span aria-hidden="true"></span>
+    <button class="icon-btn" type="button" aria-label="Copy invite link" data-copy data-copy-text="{{ invite_url }}">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </button>
 </header>
 {% endblock %}
 
@@ -90,6 +95,20 @@
             </article>
         {% endfor %}
     </div>
+
+    {% if solo_project %}
+        <section class="card invite-reminder">
+            <div class="stack">
+                <div class="stack">
+                    <h2 class="section-title">It's just you so far.</h2>
+                    <p class="screen-subtitle">Send the link - pressure needs a second person.</p>
+                </div>
+                <button class="btn btn--soft btn--full" type="button" data-copy data-copy-text="{{ invite_url }}">
+                    <span data-copy-label>Copy invite link</span>
+                </button>
+            </div>
+        </section>
+    {% endif %}
 
     <section class="stack">
         <h2 class="section-title">

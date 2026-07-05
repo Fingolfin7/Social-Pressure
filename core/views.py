@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.formats import date_format
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -141,6 +142,52 @@ def project_target(request, pk):
 
 
 @login_required
+def project_join(request, token):
+    project = get_object_or_404(
+        Project.objects.prefetch_related("activities", "memberships__user"),
+        invite_token=token,
+    )
+    activity = _first_activity_or_404(project)
+    if Membership.objects.filter(project=project, user=request.user).exists():
+        return redirect("project_detail", pk=project.pk)
+
+    inviter = project.created_by
+    inviter_name = _inviter_display_name(project)
+    default_target = _inviter_target(project, activity, inviter) or 3
+    value = default_target
+
+    if request.method == "POST":
+        value = _clamp_target(request.POST.get("target"))
+        with transaction.atomic():
+            membership, _created = Membership.objects.get_or_create(
+                project=project,
+                user=request.user,
+            )
+            MemberTarget.objects.update_or_create(
+                membership=membership,
+                activity=activity,
+                defaults={"target": value},
+            )
+        return redirect("project_detail", pk=project.pk)
+
+    return render(
+        request,
+        "core/project_join.html",
+        {
+            "project": project,
+            "activity": activity,
+            "inviter": inviter,
+            "inviter_name": inviter_name,
+            "value": value,
+            "detail_rows": _join_detail_rows(project, activity),
+            "unit_plural": _plural_unit(activity.unit),
+            "cadence_label": CADENCE_LABELS.get(activity.cadence, activity.cadence),
+            "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
+        },
+    )
+
+
+@login_required
 def project_detail(request, pk):
     project = _member_project_or_404(pk, request.user)
     activity = _first_activity_or_404(project)
@@ -162,6 +209,7 @@ def project_detail(request, pk):
         membership__user=request.user,
         activity=activity,
     ).exists()
+    join_path = reverse("project_join", kwargs={"token": project.invite_token})
     return render(
         request,
         "core/project_detail.html",
@@ -178,6 +226,8 @@ def project_detail(request, pk):
             "feed_empty": feed["empty"],
             "show_earlier_link": feed["show_earlier_link"],
             "missing_target": missing_target,
+            "solo_project": len(progress) == 1,
+            "invite_url": request.build_absolute_uri(join_path),
             "unit_plural": _plural_unit(activity.unit),
             "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
         },
@@ -327,6 +377,58 @@ def _display_name(user, is_current_user=False):
     if is_current_user:
         return "You"
     return user.first_name or user.username
+
+
+def _inviter_display_name(project):
+    if project.created_by:
+        return project.created_by.first_name or project.created_by.username
+    return "Your partner"
+
+
+def _inviter_target(project, activity, inviter):
+    if not inviter:
+        return None
+    target = MemberTarget.objects.filter(
+        membership__project=project,
+        membership__user=inviter,
+        activity=activity,
+    ).first()
+    return target.target if target else None
+
+
+def _join_detail_rows(project, activity):
+    rows = [
+        {"key": "Project", "value": project.name},
+        {
+            "key": "You'll count",
+            "value": f"{activity.name}, {CADENCE_LABELS.get(activity.cadence, activity.cadence)}",
+        },
+    ]
+    cadence_noun = CADENCE_NOUNS.get(activity.cadence, activity.cadence)
+    targets = (
+        MemberTarget.objects.filter(membership__project=project, activity=activity)
+        .select_related("membership__user")
+        .order_by("membership__joined_at", "membership__pk")
+    )
+    for target in targets:
+        name = target.membership.user.first_name or target.membership.user.username
+        rows.append(
+            {
+                "key": f"{name}'s aiming for",
+                "value": f"{target.target} a {cadence_noun}",
+            }
+        )
+    rows.append(
+        {
+            "key": "Runs",
+            "value": (
+                f"Until {date_format(project.end_date, 'M j, Y')}"
+                if project.end_date
+                else "As long as you like"
+            ),
+        }
+    )
+    return rows
 
 
 def _period_chip(activity, start, end):

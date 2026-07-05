@@ -11,6 +11,9 @@
 
     <form class="auth-form" method="post">
         {% csrf_token %}
+        {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+        {% endif %}
         {{ form.non_field_errors }}
         {% for field in form %}
             <div class="field">
@@ -22,6 +25,13 @@
         <button class="btn btn--primary btn--full" type="submit">Log in</button>
     </form>
 
-    <p class="auth-meta">Need someone to keep you honest? <a href="{% url 'register' %}">Create an account</a>.</p>
+    <p class="auth-meta">
+        Need someone to keep you honest?
+        {% if redirect_field_value %}
+            <a href="{% url 'register' %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}">Create an account</a>.
+        {% else %}
+            <a href="{% url 'register' %}">Create an account</a>.
+        {% endif %}
+    </p>
 </section>
 {% endblock %}

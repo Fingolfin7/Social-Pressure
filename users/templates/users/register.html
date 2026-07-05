@@ -11,6 +11,9 @@
 
     <form class="auth-form" method="post">
         {% csrf_token %}
+        {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
         {{ form.non_field_errors }}
         {% for field in form %}
             <div class="field">
@@ -25,6 +28,13 @@
         <button class="btn btn--primary btn--full" type="submit">Create account</button>
     </form>
 
-    <p class="auth-meta">Already have people watching? <a href="{% url 'login' %}">Log in</a>.</p>
+    <p class="auth-meta">
+        Already have people watching?
+        {% if next %}
+            <a href="{% url 'login' %}?next={{ next|urlencode }}">Log in</a>.
+        {% else %}
+            <a href="{% url 'login' %}">Log in</a>.
+        {% endif %}
+    </p>
 </section>
 {% endblock %}

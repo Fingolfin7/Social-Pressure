@@ -161,6 +161,70 @@
     return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
 
+  function copyText(value) {
+    if (!value) {
+      return Promise.resolve(false);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(value).then(() => true).catch(() => fallbackCopy(value));
+    }
+    return fallbackCopy(value);
+  }
+
+  function fallbackCopy(value) {
+    if (!document.queryCommandSupported || !document.queryCommandSupported("copy")) {
+      return Promise.resolve(false);
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-999px";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (_error) {
+      copied = false;
+    }
+    textarea.remove();
+    return Promise.resolve(copied);
+  }
+
+  function bindCopies() {
+    document.querySelectorAll("[data-copy]").forEach((button) => {
+      const originalHtml = button.innerHTML;
+      let timeout = null;
+
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        copyText(button.dataset.copyText || "").then((copied) => {
+          if (!copied) {
+            return;
+          }
+
+          window.clearTimeout(timeout);
+          const label = button.querySelector("[data-copy-label]");
+          if (label) {
+            label.textContent = "Copied ✓";
+          } else {
+            button.innerHTML = checkIcon();
+          }
+          button.classList.add("is-copied");
+
+          timeout = window.setTimeout(() => {
+            button.innerHTML = originalHtml;
+            button.classList.remove("is-copied");
+          }, 1500);
+        });
+      });
+    });
+  }
+
   function bindNudges() {
     document.querySelectorAll("[data-nudge]").forEach((button) => {
       const original = button.innerHTML;
@@ -286,6 +350,7 @@
 
   bindLogForms();
   bindReactions();
+  bindCopies();
   bindNudges();
   bindCreateHelpers();
   bindSteppers();

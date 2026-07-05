@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Join {{ project.name }} - Social Pressure{% endblock %}
+
+{% block topbar %}
+<header class="topbar topbar--brand-only">
+    <a class="topbar__brand" href="{% url 'home' %}">Social Pressure<span class="topbar__brand-dot">.</span></a>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="screen stack--loose join-screen">
+    <div class="join-hero">
+        <p class="join-kicker"><b>{{ inviter_name }}</b> wants you in on this</p>
+        <div class="pair-graphic" aria-hidden="true">
+            <span class="avatar avatar--64 avatar--clay">{{ inviter_name|slice:":1" }}</span>
+            <span class="pair-graphic__heart">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" fill="currentColor"/>
+                </svg>
+            </span>
+            <span class="avatar avatar--64 avatar--unknown">?</span>
+        </div>
+        <h1 class="screen-title join-title">Keep each other on track, one {{ cadence_noun }} at a time.</h1>
+    </div>
+
+    <div class="card detail-card">
+        {% for row in detail_rows %}
+            <div class="detail-row">
+                <span class="detail-row__key">{{ row.key }}</span>
+                <span class="detail-row__value">{{ row.value }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <form class="form join-form" method="post">
+        {% csrf_token %}
+        <div class="join-target">
+            <h2 class="section-title">How many for you?</h2>
+            <p class="screen-subtitle">Your target is yours - it doesn't have to match {{ inviter_name }}'s.</p>
+        </div>
+        <div class="stepper" data-stepper>
+            <button class="stepper__btn" type="button" data-stepper-minus aria-label="Decrease target">-</button>
+            <div>
+                <div class="stepper__value" data-stepper-value>{{ value }}</div>
+                <div class="stepper__caption">{{ unit_plural }} / {{ cadence_noun }}</div>
+                <input class="stepper__input" type="number" name="target" min="1" max="99" value="{{ value }}">
+            </div>
+            <button class="stepper__btn" type="button" data-stepper-plus aria-label="Increase target">+</button>
+        </div>
+        <button class="btn btn--primary btn--full" type="submit">Join {{ project.name }}</button>
+    </form>
+
+    <p class="join-footer">You can change your target later.</p>
+</section>
+{% endblock %}

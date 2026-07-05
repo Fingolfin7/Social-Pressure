@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import json
+import uuid
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -234,6 +235,118 @@ class ProjectFlowTests(TestCase):
 
         self.assertEqual(detail_response.status_code, 404)
         self.assertEqual(target_response.status_code, 404)
+
+    def test_join_get_as_non_member_renders_project_inviter_and_default_target(self):
+        project, activity, membership = self.make_project()
+        MemberTarget.objects.create(membership=membership, activity=activity, target=4)
+        self.client.force_login(self.partner)
+
+        response = self.client.get(reverse("project_join", kwargs={"token": project.invite_token}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Gym Buddies")
+        self.assertContains(response, "Henry")
+        self.assertContains(response, 'data-stepper-value>4</div>', html=False)
+
+    def test_join_post_creates_membership_and_clamped_target(self):
+        project, activity, _membership = self.make_project()
+        self.client.force_login(self.partner)
+
+        response = self.client.post(
+            reverse("project_join", kwargs={"token": project.invite_token}),
+            {"target": "150"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("project_detail", kwargs={"pk": project.pk}),
+            fetch_redirect_response=False,
+        )
+        membership = Membership.objects.get(project=project, user=self.partner)
+        self.assertEqual(
+            MemberTarget.objects.get(membership=membership, activity=activity).target,
+            99,
+        )
+
+    def test_join_post_twice_does_not_duplicate_membership_or_target(self):
+        project, activity, _membership = self.make_project()
+        self.client.force_login(self.partner)
+        url = reverse("project_join", kwargs={"token": project.invite_token})
+
+        first_response = self.client.post(url, {"target": "5"})
+        second_response = self.client.post(url, {"target": "5"})
+
+        self.assertEqual(first_response.status_code, 302)
+        self.assertEqual(second_response.status_code, 302)
+        self.assertEqual(Membership.objects.filter(project=project, user=self.partner).count(), 1)
+        membership = Membership.objects.get(project=project, user=self.partner)
+        self.assertEqual(MemberTarget.objects.filter(membership=membership, activity=activity).count(), 1)
+
+    def test_join_get_redirects_when_already_member(self):
+        project, _activity, _membership = self.make_project()
+
+        response = self.client.get(reverse("project_join", kwargs={"token": project.invite_token}))
+
+        self.assertRedirects(
+            response,
+            reverse("project_detail", kwargs={"pk": project.pk}),
+            fetch_redirect_response=False,
+        )
+
+    def test_join_bad_token_returns_404(self):
+        response = self.client.get(reverse("project_join", kwargs={"token": uuid.uuid4()}))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_logged_out_join_redirects_to_login_with_next(self):
+        project, _activity, _membership = self.make_project()
+        self.client.logout()
+        join_url = reverse("project_join", kwargs={"token": project.invite_token})
+
+        response = self.client.get(join_url)
+
+        self.assertRedirects(
+            response,
+            f"{reverse('login')}?next={join_url}",
+            fetch_redirect_response=False,
+        )
+
+    def test_register_honors_safe_next(self):
+        self.client.logout()
+        next_url = "/projects/new/"
+
+        response = self.client.post(
+            f"{reverse('register')}?next={next_url}",
+            {
+                "username": "newperson",
+                "email": "newperson@example.com",
+                "password1": "testpass123",
+                "password2": "testpass123",
+                "next": next_url,
+            },
+        )
+
+        self.assertRedirects(response, next_url, fetch_redirect_response=False)
+
+    def test_project_detail_shows_invite_reminder_when_solo_only(self):
+        project, _activity, _membership = self.make_project()
+
+        solo_response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+        Membership.objects.create(project=project, user=self.partner)
+        partner_response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertContains(solo_response, "It's just you so far.")
+        self.assertContains(solo_response, "Copy invite link")
+        self.assertNotContains(partner_response, "It's just you so far.")
+
+    def test_project_detail_includes_join_url_for_copy_button(self):
+        project, _activity, _membership = self.make_project()
+        join_path = reverse("project_join", kwargs={"token": project.invite_token})
+
+        response = self.client.get(reverse("project_detail", kwargs={"pk": project.pk}))
+
+        self.assertContains(response, join_path)
+        self.assertContains(response, 'data-copy-text="http://testserver')
 
     def test_home_shows_behind_pill_and_orders_behind_project_first(self):
         behind_project, behind_activity, behind_membership = self.make_project("Behind Project")
