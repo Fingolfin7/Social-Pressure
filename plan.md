@@ -1,6 +1,8 @@
 # Social Pressure — Project Plan
 
-*Drafted 2026-07-04. Status: planning — no code yet.*
+*Drafted 2026-07-04. Status: V1 built and deployed on Render. This document is now a
+historical record of the plan plus the roadmap for what's next (V1.5 outcomes layer,
+V2 dead-partner mechanics). See [README.md](README.md) for current status.*
 
 ## Concept
 
@@ -53,9 +55,10 @@ about this.
 
 ## Roadmap
 
-### V1 — MVP: the loop works (log → partner sees → pressure)
+### V1 — MVP: the loop works (log → partner sees → pressure) ✅ shipped
 
-Feature test: does it serve the core loop? If not, cut it.
+Feature test: does it serve the core loop? If not, cut it. All of the following are
+built and deployed:
 
 - Accounts: email + password, bare profile (name, avatar).
 - Create project: name, one activity (name, unit, cadence), fixed end date or

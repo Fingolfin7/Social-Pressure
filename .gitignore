@@ -9,3 +9,11 @@ staticfiles/
 _reference/
 codex_task*_result.md
 *.log
+
+# Local tooling / editor artifacts
+.claude/
+.playwright-mcp/
+
+# Machine-specific dev helpers and one-off setup scripts
+*.bat
+scripts/setup_social_pressure_aws.py
