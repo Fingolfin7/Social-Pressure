@@ -832,6 +832,14 @@ def _log_support_copy(partners, target, new_count, cadence):
             "suffix": f" this {cadence_noun}.",
         }
 
+    extra = new_count - target.target
+    if extra > 0:
+        return {
+            "opening": opening,
+            "count": str(new_count),
+            "suffix": f" — {extra} past your {cadence_noun}. 💪",
+        }
+
     count = f"{new_count} of {target.target}"
     if new_count >= target.target:
         suffix = f" — your whole {cadence_noun}, done."
@@ -848,6 +856,15 @@ def _logged_body(target, count, cadence, streak):
         return {
             "count": str(count),
             "suffix": f" {period_copy}.",
+            "streak": "",
+        }
+
+    extra = count - target.target
+    if extra > 0:
+        cadence_noun = CADENCE_NOUNS.get(cadence, cadence)
+        return {
+            "count": str(count),
+            "suffix": f" {period_copy} — {extra} past your {cadence_noun}. 💪",
             "streak": "",
         }
 
@@ -1039,7 +1056,14 @@ def _member_display(item, activity):
     if not item["target"]:
         next_item["status"] = {"class": "status-line", "text": "No target yet"}
     elif item["met"]:
-        next_item["status"] = {"class": "status-line status-line--done", "text": f"Done for {done_copy} ✓"}
+        extra = item["count"] - item["target_count"]
+        if extra > 0:
+            next_item["status"] = {
+                "class": "status-line status-line--bonus",
+                "text": f"Done +{extra} extra ✓",
+            }
+        else:
+            next_item["status"] = {"class": "status-line status-line--done", "text": f"Done for {done_copy} ✓"}
     elif item["is_current_user"]:
         remaining = item["target_count"] - item["count"]
         next_item["status"] = {
@@ -1094,12 +1118,15 @@ def _project_feed(project, activity, current_user, progress, period_start, perio
             created_at__lt=period_end,
         ).select_related("from_user", "to_user")
     )
+    target_by_user = {item["user"].id: item["target_count"] for item in progress}
+    bonus_event_ids = _bonus_event_ids(current_events, target_by_user)
     current_items = _render_feed_items(
         current_events,
         current_nudges,
         current_user,
         color_by_user,
         period_start,
+        bonus_event_ids,
     )
 
     older_events_qs = (
@@ -1150,17 +1177,47 @@ def _project_feed(project, activity, current_user, progress, period_start, perio
     }
 
 
-def _render_feed_items(events, nudges, current_user, color_by_user, current_period_start):
+def _bonus_event_ids(events, target_by_user):
+    """Return the pks of events logged past the member's target for the period.
+
+    Within each member's events, the first `target` (chronologically) count toward
+    the goal; anything after that is a bonus entry worth flagging in the feed.
+    """
+    by_user = {}
+    for event in events:
+        by_user.setdefault(event.user_id, []).append(event)
+
+    bonus = set()
+    for user_id, user_events in by_user.items():
+        target = target_by_user.get(user_id)
+        if not target:
+            continue
+        ordered = sorted(user_events, key=lambda event: event.logged_at)
+        for index, event in enumerate(ordered):
+            if index >= target:
+                bonus.add(event.pk)
+    return bonus
+
+
+def _render_feed_items(
+    events, nudges, current_user, color_by_user, current_period_start, bonus_event_ids=frozenset()
+):
     items = []
     for event in events:
-        items.append(_event_feed_item(event, current_user, color_by_user, current_period_start))
+        items.append(
+            _event_feed_item(
+                event, current_user, color_by_user, current_period_start, bonus_event_ids
+            )
+        )
     for nudge in nudges:
         items.append(_nudge_feed_item(nudge, current_user, current_period_start))
     items.sort(key=lambda item: item["sort_at"], reverse=True)
     return items
 
 
-def _event_feed_item(event, current_user, color_by_user, current_period_start):
+def _event_feed_item(
+    event, current_user, color_by_user, current_period_start, bonus_event_ids=frozenset()
+):
     return {
         "type": "event",
         "event_pk": event.pk,
@@ -1173,6 +1230,7 @@ def _event_feed_item(event, current_user, color_by_user, current_period_start):
         "timestamp": _feed_timestamp(event.logged_at, current_period_start),
         "note": event.note,
         "reactions": _event_reactions(event, current_user),
+        "is_bonus": event.pk in bonus_event_ids,
     }
 
 
@@ -1280,15 +1338,18 @@ def _renderable_progress(progress):
     for item in progress:
         next_item = dict(item)
         target_count = item["target_count"]
+        count = item["count"]
         if target_count:
+            extra = max(0, count - target_count)
             next_item["use_bar"] = target_count > 10
             if target_count > 10:
                 next_item["dots"] = []
-                next_item["overflow"] = 0
-                next_item["bar_percent"] = min(100, int((item["count"] / target_count) * 100))
+                next_item["bonus_dots"] = []
+                next_item["overflow"] = extra
+                next_item["bar_percent"] = min(100, int((count / target_count) * 100))
             else:
                 dot_count = target_count
-                filled = min(item["count"], dot_count)
+                filled = min(count, dot_count)
                 next_item["dots"] = [
                     {
                         "filled": index < filled,
@@ -1296,11 +1357,16 @@ def _renderable_progress(progress):
                     }
                     for index in range(dot_count)
                 ]
-                next_item["overflow"] = max(0, item["count"] - target_count)
+                # Show extra entries as distinct bonus dots, keeping the whole row
+                # to at most ~10 dots; anything beyond that collapses into a +N chip.
+                shown_bonus = min(extra, max(0, 10 - dot_count))
+                next_item["bonus_dots"] = [None] * shown_bonus
+                next_item["overflow"] = extra - shown_bonus
                 next_item["bar_percent"] = 0
         else:
             next_item["use_bar"] = False
             next_item["dots"] = []
+            next_item["bonus_dots"] = []
             next_item["overflow"] = 0
             next_item["bar_percent"] = 0
         rendered.append(next_item)
