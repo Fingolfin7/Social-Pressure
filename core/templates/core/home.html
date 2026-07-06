@@ -45,16 +45,24 @@
                                                 </div>
                                                 {% if member.target %}
                                                     {% if member.use_bar %}
-                                                        <div class="gbar" aria-hidden="true">
-                                                            <span class="gbar__fill" style="width: {{ member.bar_percent }}%;"></span>
+                                                        <div class="gbar-row">
+                                                            <div class="gbar" aria-hidden="true">
+                                                                <span class="gbar__fill" style="width: {{ member.bar_percent }}%;"></span>
+                                                            </div>
+                                                            {% if member.overflow %}
+                                                                <span class="gdot-overflow gdot-overflow--bonus">+{{ member.overflow }}</span>
+                                                            {% endif %}
                                                         </div>
                                                     {% else %}
                                                         <div class="gdot-row" aria-hidden="true">
                                                             {% for dot in member.dots %}
                                                                 <span class="gdot{% if dot.filled %} gdot--filled{% endif %}{% if dot.warn %} gdot--warn{% endif %}"></span>
                                                             {% endfor %}
+                                                            {% for dot in member.bonus_dots %}
+                                                                <span class="gdot gdot--bonus"></span>
+                                                            {% endfor %}
                                                             {% if member.overflow %}
-                                                                <span class="gdot-overflow">+{{ member.overflow }}</span>
+                                                                <span class="gdot-overflow gdot-overflow--bonus">+{{ member.overflow }}</span>
                                                             {% endif %}
                                                         </div>
                                                     {% endif %}
