@@ -305,6 +305,11 @@ def project_settings(request, pk):
     activity = _first_activity_or_404(project)
     member_count = project.memberships.count()
     invite = _project_invite_context(request, project)
+    target = MemberTarget.objects.filter(
+        membership__project=project,
+        membership__user=request.user,
+        activity=activity,
+    ).first()
     return render(
         request,
         "core/project_settings.html",
@@ -316,6 +321,9 @@ def project_settings(request, pk):
             "can_delete": project.created_by_id == request.user.id,
             "invite_url": invite["invite_url"],
             "invite_message": invite["invite_message"],
+            "target_value": target.target if target else None,
+            "unit_plural": _plural_unit(activity.unit),
+            "cadence_noun": CADENCE_NOUNS.get(activity.cadence, activity.cadence),
         },
     )
 

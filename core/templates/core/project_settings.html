@@ -34,6 +34,24 @@
         </div>
     </section>
 
+    <section class="card">
+        <div class="settings-action__main">
+            <div class="settings-action__copy">
+                <h2 class="settings-action__title">Your target</h2>
+                <p class="screen-subtitle">
+                    {% if target_value %}
+                        Aiming for {{ target_value }} {{ unit_plural }} a {{ cadence_noun }}.
+                    {% else %}
+                        You haven't set a target yet.
+                    {% endif %}
+                </p>
+            </div>
+            <a class="btn btn--secondary settings-action__button" href="{% url 'project_target' project.pk %}">
+                {% if target_value %}Adjust{% else %}Set{% endif %}
+            </a>
+        </div>
+    </section>
+
     <section class="card settings-card">
         <div class="settings-action" data-confirm>
             <div class="settings-action__main">
