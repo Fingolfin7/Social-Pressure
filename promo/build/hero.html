@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; box-sizing:border-box; }
+  body {
+    width:1920px; height:1080px; background:#f7f1e7; overflow:hidden;
+    font-family:'Inter',sans-serif; color:#38332c; display:flex; align-items:center;
+  }
+  .left {
+    width:46%; padding:0 60px 0 110px; display:flex; flex-direction:column; gap:44px;
+  }
+  .dots { display:flex; gap:16px; }
+  .dot { width:30px; height:30px; border-radius:50%; }
+  .brand { font-family:'Fraunces',serif; font-weight:700; font-size:96px; letter-spacing:-2px; line-height:1.05; }
+  .brand span { color:#d9603b; }
+  .tag { font-size:38px; line-height:1.5; color:#8a8072; font-weight:500; }
+  .tag b { color:#38332c; }
+  .url {
+    align-self:flex-start; background:#d9603b; color:#fff; font-weight:700; font-size:32px;
+    padding:26px 44px; border-radius:999px; box-shadow:0 10px 28px rgba(217,96,59,.35);
+  }
+  .foot { font-size:28px; color:#8a8072; font-weight:500; }
+  .right { position:relative; width:54%; height:100%; }
+  .phone {
+    position:absolute; width:430px; border-radius:44px; overflow:hidden;
+    border:10px solid #26221d; box-shadow:0 30px 70px rgba(60,45,30,.30);
+  }
+  .phone img { display:block; width:100%; }
+  .p1 { left:60px; top:120px; transform:rotate(-4deg); z-index:1; }
+  .p2 { left:470px; top:220px; transform:rotate(3deg); z-index:2; }
+  .lbl {
+    position:absolute; z-index:3; background:#26221d; color:#fff; font-weight:700;
+    font-size:30px; padding:16px 30px; border-radius:999px; box-shadow:0 8px 22px rgba(60,45,30,.3);
+  }
+  .l1 { left:150px; top:76px; transform:rotate(-4deg); }
+  .l2 { left:610px; top:180px; transform:rotate(3deg); }
+</style></head><body>
+  <div class="left">
+    <div class="dots">
+      <div class="dot" style="background:#d9603b"></div>
+      <div class="dot" style="background:#d9603b"></div>
+      <div class="dot" style="background:#5c7a56"></div>
+      <div class="dot" style="border:4px dashed #d9603b"></div>
+    </div>
+    <div class="brand">Social Pressure<span>.</span></div>
+    <div class="tag">A gym partner who doesn't go to your gym.<br>A study partner who doesn't go to your school.<br><b>Pick a habit, invite a friend, show up.</b></div>
+    <div class="url">social-pressure-web.onrender.com</div>
+    <div class="foot">Free &middot; runs in your browser &middot; installs like an app</div>
+  </div>
+  <div class="right">
+    <div class="phone p1"><img src="file:///C:/Users/mushu/AppData/Local/Temp/claude/C--Users-mushu-Documents-Programming-Python-Social-Pressure/3cd6b527-39d7-4102-9b08-7519fec7bddb/scratchpad/hero_left.png"></div>
+    <div class="phone p2"><img src="file:///C:/Users/mushu/AppData/Local/Temp/claude/C--Users-mushu-Documents-Programming-Python-Social-Pressure/3cd6b527-39d7-4102-9b08-7519fec7bddb/scratchpad/hero_right.png"></div>
+    <div class="lbl l1">your phone</div>
+    <div class="lbl l2">their phone</div>
+  </div>
+</body></html>

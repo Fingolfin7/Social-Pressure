@@ -17,3 +17,12 @@ codex_task*_result.md
 # Machine-specific dev helpers and one-off setup scripts
 *.bat
 scripts/setup_social_pressure_aws.py
+
+# Promo media: track scripts + shareable images, ignore large/regeneratable
+# files and raw phone recordings (which may contain personal data)
+promo/*.mp4
+promo/phone_clips/
+promo/build/clips/
+promo/build/*.mp3
+promo/build/*.png
+video_demo/

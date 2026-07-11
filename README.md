@@ -4,8 +4,22 @@ Accountability-partner app: define a project, invite partners by link, log activ
 events in one tap, and let mutual visibility + web push notifications keep everyone on
 track. The human element is the feature; everything else is plumbing.
 
+![Your phone and your partner's phone sharing one project](promo/reddit_hero.png)
+
 **Live app:** https://social-pressure-web.onrender.com
 **Source:** https://github.com/Fingolfin7/Social-Pressure
+
+## The loop in action
+
+You log a session; your partner's screen updates seconds later, and they can
+react or nudge you right back:
+
+<img src="promo/social_pressure_loop.gif" width="320" alt="A partner's phone updating live as a session is logged, followed by an emoji reaction and a nudge">
+
+There's also a one-minute walkthrough video, produced by the scripts in
+[promo/build/](promo/build/) — seeded demo data, Playwright phone-emulated screen
+recordings, ffmpeg assembly — so it can be regenerated after UI changes. The
+rendered videos are kept out of git; run the build scripts to reproduce them.
 
 See [plan.md](plan.md) for the product plan and [design/UI_DESIGN.md](design/UI_DESIGN.md)
 for the "Roster" visual system.
